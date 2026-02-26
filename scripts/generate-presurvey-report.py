@@ -110,11 +110,11 @@ def build_report(output_path: str, white_label: str | None = None):
     w = A4[0] - 40 * mm  # usable width
 
     # ─── Branding ───
-    brand_name = white_label or "PROSPEK"
+    brand_name = white_label or "POWERROOF"
     brand_footer = (
-        f"{white_label} | Powered by Prospek.my"
+        f"{white_label} | Powered by PowerRoof.my"
         if white_label
-        else "Prospek.my — Solar Acquisition Intelligence"
+        else "PowerRoof.my — Solar Acquisition Intelligence"
     )
 
     # ─── HEADER ───

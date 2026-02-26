@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * POST /api/v1/leads/intake
  *
  * Public endpoint — no auth required.
- * Receives inbound lead submissions from the Prospek landing page contact form.
+ * Receives inbound lead submissions from the PowerRoof landing page contact form.
  *
  * Expected body:
  *   company_name: string (required)
@@ -15,7 +15,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  *   segments: string (e.g. "industrial", "commercial")
  *   target: string (e.g. "Selangor")
  *   notes: string
- *   source: string (e.g. "prospek_landing")
+ *   source: string (e.g. "powerroof_landing")
  */
 
 // Basic rate-limit: track submissions per IP in memory (resets on server restart)
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   const segments = String(body.segments || "").trim();
   const target = String(body.target || "").trim();
   const notes = String(body.notes || "").trim();
-  const source = String(body.source || "prospek_landing").trim();
+  const source = String(body.source || "powerroof_landing").trim();
 
   // Validate required fields
   if (!companyName) {
