@@ -592,6 +592,232 @@
       color: var(--text-tertiary);
     }
 
+    /* ─── PIPELINE MACHINE ─── */
+    .pipeline-wrap {
+      margin-top: var(--space-3xl);
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(245,158,11,.02) 0%, rgba(0,0,0,0) 100%);
+      border: 1px solid var(--border);
+      padding: 48px 32px 32px;
+    }
+    .pipeline-track {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 260px;
+    }
+    /* connector line behind stations */
+    .pipeline-line {
+      position: absolute;
+      top: 50%;
+      left: 60px;
+      right: 60px;
+      height: 2px;
+      background: var(--border);
+      transform: translateY(-1px);
+      z-index: 0;
+    }
+    .pipeline-line-fill {
+      position: absolute;
+      top: 0; left: 0;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #22C55E);
+      border-radius: 2px;
+      transition: width .6s ease;
+    }
+    /* individual station */
+    .pipe-station {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 160px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+    .pipe-station.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .pipe-station.done .pipe-ring {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(245,158,11,.2);
+    }
+    .pipe-ring {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      transition: border-color .4s, box-shadow .4s;
+      position: relative;
+      overflow: hidden;
+    }
+    .pipe-ring svg {
+      width: 28px; height: 28px;
+      color: var(--text-tertiary);
+      transition: color .4s;
+    }
+    .pipe-station.active .pipe-ring svg,
+    .pipe-station.done .pipe-ring svg {
+      color: var(--accent);
+    }
+    /* mini animation inside each ring */
+    .pipe-ring .ring-scan {
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(245,158,11,.15), transparent);
+      opacity: 0;
+    }
+    .pipe-station.processing .ring-scan {
+      animation: ring-sweep .8s ease forwards;
+    }
+    @keyframes ring-sweep {
+      0% { left: -100%; opacity: 1; }
+      100% { left: 100%; opacity: 0; }
+    }
+    /* pulse ring on completion */
+    .pipe-ring::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      opacity: 0;
+      transform: scale(.8);
+    }
+    .pipe-station.done .pipe-ring::after {
+      animation: pipe-pulse .6s ease forwards;
+    }
+    @keyframes pipe-pulse {
+      0% { opacity: .6; transform: scale(.9); }
+      100% { opacity: 0; transform: scale(1.4); }
+    }
+    .pipe-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+      transition: color .4s;
+    }
+    .pipe-station.active .pipe-label,
+    .pipe-station.done .pipe-label {
+      color: var(--accent);
+    }
+    .pipe-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .pipe-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-align: center;
+      min-height: 18px;
+      opacity: 0;
+      transition: opacity .4s;
+    }
+    .pipe-station.done .pipe-meta {
+      opacity: 1;
+    }
+    /* traveling particle */
+    .pipe-particle {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(245,158,11,.6);
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      opacity: 0;
+    }
+    .pipe-particle.traveling {
+      opacity: 1;
+    }
+    /* detail card that appears below */
+    .pipe-detail {
+      margin-top: 32px;
+      padding: 20px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .5s, transform .5s;
+    }
+    .pipe-detail.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .pipe-detail-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: rgba(34,197,94,.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .pipe-detail-icon svg {
+      width: 22px; height: 22px;
+      color: #22C55E;
+    }
+    .pipe-detail-text {
+      flex: 1;
+    }
+    .pipe-detail-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    .pipe-detail-sub {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      font-family: var(--mono);
+    }
+    .pipe-detail-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(34,197,94,.1);
+      color: #22C55E;
+      border: 1px solid rgba(34,197,94,.2);
+      white-space: nowrap;
+    }
+    /* responsive */
+    @media (max-width: 768px) {
+      .pipeline-wrap { padding: 32px 16px 24px; }
+      .pipeline-track { flex-direction: column; gap: 24px; min-height: auto; }
+      .pipeline-line { display: none; }
+      .pipe-station { width: 100%; flex-direction: row; gap: 16px; }
+      .pipe-ring { width: 52px; height: 52px; margin-bottom: 0; flex-shrink: 0; }
+      .pipe-ring svg { width: 22px; height: 22px; }
+      .pipe-detail { flex-direction: column; text-align: center; }
+    }
+
     /* ─── SOCIAL PROOF ─── */
     .proof {
       padding: var(--space-5xl) 0;
@@ -1374,45 +1600,159 @@
       <p class="section-desc">Industrial prospects get outbound. Residential gets inbound. Both flow through one qualified pipeline — ATAP-screened, scored, appointment-ready.</p>
     </div>
 
-    <div class="method-grid">
-      <div class="method-card reveal reveal-d1">
-        <div class="method-num">01</div>
-        <div class="method-icon">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="8"/><circle cx="10" cy="10" r="3"/><line x1="10" y1="2" x2="10" y2="5"/><line x1="10" y1="15" x2="10" y2="18"/><line x1="2" y1="10" x2="5" y2="10"/><line x1="15" y1="10" x2="18" y2="10"/></svg>
+    <!-- Pipeline Machine Animation -->
+    <div class="pipeline-wrap" id="pipeline-machine">
+      <div class="pipeline-track">
+        <!-- connector line -->
+        <div class="pipeline-line">
+          <div class="pipeline-line-fill" id="pipe-fill"></div>
         </div>
-        <div class="method-title">Discover the building</div>
-        <p class="method-desc">Zone-by-zone mapping across Selangor. SSM codes, FMM directory, park tenant lists for industrial. Geo-scored housing estates by income signal for residential.</p>
+        <!-- traveling particle -->
+        <div class="pipe-particle" id="pipe-particle"></div>
+
+        <!-- Station 1: Discover -->
+        <div class="pipe-station" id="ps-1">
+          <div class="pipe-ring">
+            <div class="ring-scan"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg>
+          </div>
+          <div class="pipe-label">SCAN</div>
+          <div class="pipe-title">Discover the building</div>
+          <div class="pipe-meta" id="pm-1">Shah Alam · 47 factories</div>
+        </div>
+
+        <!-- Station 2: Find -->
+        <div class="pipe-station" id="ps-2">
+          <div class="pipe-ring">
+            <div class="ring-scan"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="7" r="4.5"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div class="pipe-label">SSM</div>
+          <div class="pipe-title">Find decision maker</div>
+          <div class="pipe-meta" id="pm-2">Ahmad bin Hassan · Director</div>
+        </div>
+
+        <!-- Station 3: Qualify -->
+        <div class="pipe-station" id="ps-3">
+          <div class="pipe-ring">
+            <div class="ring-scan"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12l5 5L19 7"/><rect x="2" y="2" width="20" height="20" rx="4"/></svg>
+          </div>
+          <div class="pipe-label">SCORE</div>
+          <div class="pipe-title">Qualify the prospect</div>
+          <div class="pipe-meta" id="pm-3">Fit Score: 82 · Tier A</div>
+        </div>
+
+        <!-- Station 4: Book -->
+        <div class="pipe-station" id="ps-4">
+          <div class="pipe-ring">
+            <div class="ring-scan"></div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2.5"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="4" x2="8" y2="9"/><line x1="16" y1="4" x2="16" y2="9"/><path d="M9 14l2 2 4-4" stroke-width="2"/></svg>
+          </div>
+          <div class="pipe-label">BOOK</div>
+          <div class="pipe-title">Book the appointment</div>
+          <div class="pipe-meta" id="pm-4">Site visit · 3 Mar 2026</div>
+        </div>
       </div>
 
-      <div class="method-card reveal reveal-d2">
-        <div class="method-num">02</div>
-        <div class="method-icon">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="6" r="4"/><path d="M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg>
+      <!-- Result card -->
+      <div class="pipe-detail" id="pipe-result">
+        <div class="pipe-detail-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L19 7"/></svg>
         </div>
-        <div class="method-title">Find the decision maker</div>
-        <p class="method-desc">Industrial: company director from SSM, verified by phone. Residential: homeowner reached via geo-targeted Meta ads with a bill-size qualifier form.</p>
-      </div>
-
-      <div class="method-card reveal reveal-d3">
-        <div class="method-num">03</div>
-        <div class="method-icon">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4 4 8-8"/><rect x="1" y="1" width="18" height="18" rx="3"/></svg>
+        <div class="pipe-detail-text">
+          <div class="pipe-detail-title">Mega Plastics Sdn Bhd</div>
+          <div class="pipe-detail-sub">280 kWp · RM 97,400/yr savings · 5.8yr payback</div>
         </div>
-        <div class="method-title">Qualify the prospect</div>
-        <p class="method-desc">Every lead scored against consumption signals, roof potential, and segment-specific criteria. Factory gets an energy snapshot. Residential gets a savings estimate.</p>
-      </div>
-
-      <div class="method-card reveal reveal-d4">
-        <div class="method-num">04</div>
-        <div class="method-icon">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="16" height="14" rx="2"/><line x1="2" y1="7" x2="18" y2="7"/><line x1="6" y1="3" x2="6" y2="7"/><line x1="14" y1="3" x2="14" y2="7"/></svg>
-        </div>
-        <div class="method-title">Book the appointment</div>
-        <p class="method-desc">Multi-touch outreach in Bahasa Malaysia — WhatsApp, phone, email. Not until the decision-maker confirms a site visit does it count as a milestone.</p>
+        <div class="pipe-detail-badge">Appointment Confirmed</div>
       </div>
     </div>
   </div>
 </section>
+
+<script>
+(function(){
+  var CYCLE = 10000;
+  var machine = document.getElementById('pipeline-machine');
+  if (!machine) return;
+
+  var stations = [
+    document.getElementById('ps-1'),
+    document.getElementById('ps-2'),
+    document.getElementById('ps-3'),
+    document.getElementById('ps-4')
+  ];
+  var fill = document.getElementById('pipe-fill');
+  var particle = document.getElementById('pipe-particle');
+  var result = document.getElementById('pipe-result');
+
+  function reset() {
+    stations.forEach(function(s) {
+      s.classList.remove('active', 'done', 'processing');
+    });
+    fill.style.width = '0%';
+    particle.classList.remove('traveling');
+    particle.style.left = '60px';
+    result.classList.remove('show');
+  }
+
+  function activateStation(idx, delay) {
+    setTimeout(function() {
+      // processing sweep
+      stations[idx].classList.add('active', 'processing');
+      setTimeout(function() {
+        stations[idx].classList.remove('processing');
+        stations[idx].classList.add('done');
+        // advance fill line
+        var pct = ((idx + 1) / 4) * 100;
+        fill.style.width = pct + '%';
+      }, 600);
+    }, delay);
+  }
+
+  function moveParticle(fromPct, toPct, duration, delay) {
+    setTimeout(function() {
+      particle.classList.add('traveling');
+      particle.style.transition = 'left ' + duration + 'ms ease';
+      particle.style.left = 'calc(' + toPct + '% - 4px)';
+    }, delay);
+  }
+
+  function runCycle() {
+    reset();
+
+    // T=0.2s — Station 1 lights up
+    activateStation(0, 200);
+    // T=1.4s — particle travels to station 2
+    moveParticle(5, 33, 500, 1200);
+    // T=1.8s — Station 2 lights up
+    activateStation(1, 1800);
+    // T=3.2s — particle travels to station 3
+    moveParticle(33, 63, 500, 3000);
+    // T=3.6s — Station 3 lights up
+    activateStation(2, 3600);
+    // T=5.0s — particle travels to station 4
+    moveParticle(63, 93, 500, 4800);
+    // T=5.4s — Station 4 lights up
+    activateStation(3, 5400);
+    // T=6.4s — hide particle, show result card
+    setTimeout(function() {
+      particle.classList.remove('traveling');
+      result.classList.add('show');
+    }, 6400);
+    // T=9.5s — loop
+    setTimeout(function() { runCycle(); }, CYCLE);
+  }
+
+  var obs = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting) {
+      runCycle();
+      obs.disconnect();
+    }
+  }, { threshold: 0.25 });
+  obs.observe(machine);
+})();
+</script>
 
 <!-- ─── PROOF ─── -->
 <section class="proof">
