@@ -300,9 +300,20 @@ input[type=range]{width:100%;accent-color:var(--amber);height:6px}
       <p style="font-size:13px;color:var(--g400);font-style:italic">Assessment fee fully deductible upon project award.</p>
       <p style="font-size:12px;color:var(--g500)">Average dossier turnaround: 48 hours.</p>
     </div>
-    <div style="text-align:center;padding:14px 20px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.13);border-radius:8px;margin-bottom:40px">
+    <div style="text-align:center;padding:14px 20px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.13);border-radius:8px;margin-bottom:24px">
       <p style="font-size:13px;color:var(--amber-dim)">Solar ATAP allocation is subject to capacity window. Quota availability may vary by zone.</p>
     </div>
+
+    <!-- SIMULATION OUTPUT DISCLAIMER — Required by Legal Framework Doc 2 -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:20px 24px;margin-bottom:32px;font-size:12px;line-height:1.7;color:var(--g500)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--g400);margin-bottom:10px">Simulation Output Disclaimer</div>
+      <p style="margin-bottom:8px"><strong style="color:var(--g300)">Nature of Outputs:</strong> The Solar ATAP Exposure Simulator generates indicative modelling outputs based on user-provided inputs and prevailing market assumptions, including retail tariff estimates and System Marginal Price (SMP) averages sourced from publicly available data.</p>
+      <p style="margin-bottom:8px"><strong style="color:var(--g300)">Outputs Are Not Advice:</strong> Simulation results are hypothetical projections only. They do not constitute financial, investment, legal, or engineering advice. They are not binding proposals or performance guarantees. They should not be used as the sole basis for capital expenditure decisions.</p>
+      <p style="margin-bottom:8px"><strong style="color:var(--g300)">Factors Affecting Actual Performance:</strong> Actual performance may vary materially due to load profile variations, regulatory or tariff amendments by Suruhanjaya Tenaga, SMP volatility as published by Single Buyer Malaysia, engineering design constraints, equipment specification differences, and site-specific conditions not captured in user inputs.</p>
+      <p style="margin-bottom:8px"><strong style="color:var(--g300)">User Acknowledgement:</strong> By using this Simulator, you acknowledge that outputs are indicative estimates only and that PowerRoof bears no liability for commercial or financial decisions made based on these outputs. A facility-specific Intelligence Dossier incorporating validated data is required for project-grade assessment.</p>
+      <p><strong style="color:var(--g300)">SMP Data Notice:</strong> SMP values used are sourced from Single Buyer Malaysia and represent recent published averages. PowerRoof makes no warranty as to real-time accuracy of third-party data.</p>
+    </div>
+
     <div style="text-align:center;padding-bottom:40px">
       <button onclick="goStep(0)" style="background:transparent;border:1px solid var(--border);color:var(--g400);padding:10px 24px;border-radius:8px;font-size:13px;cursor:pointer">← Run Another Simulation</button>
     </div>
