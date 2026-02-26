@@ -853,6 +853,76 @@
     }
     .footer-links a:hover { color: var(--text-primary); }
 
+    /* ─── DEMO ACCESS MODAL ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    .modal-box h3 {
+      font-size: 18px; font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .modal-box p {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .modal-input {
+      width: 100%; box-sizing: border-box;
+      padding: 12px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 15px;
+      font-family: inherit;
+      letter-spacing: 2px;
+      text-align: center;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-input.error { border-color: #EF4444; }
+    .modal-error {
+      font-size: 12px; color: #EF4444;
+      margin-top: 8px; min-height: 18px;
+    }
+    .modal-submit {
+      margin-top: 16px; width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: #000;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .modal-submit:hover { background: #D97706; }
+    .modal-close {
+      position: absolute; top: 12px; right: 16px;
+      background: none; border: none;
+      color: var(--text-tertiary);
+      font-size: 20px; cursor: pointer;
+    }
+    .modal-close:hover { color: var(--text-primary); }
+
     /* ─── SCROLL ANIMATIONS ─── */
     .reveal {
       opacity: 0;
@@ -1328,7 +1398,7 @@
         </svg>
         Power<span>Roof</span>.my
       </div>
-      <div class="footer-copy">© 2026 PowerRoof · Solar Acquisition Platform · Malaysia</div>
+      <div class="footer-copy">© 2026 SME Cloud Sdn Bhd · All rights reserved</div>
       <div class="footer-links">
         <a href="#">Privacy</a>
         <a href="#">Terms</a>
@@ -1403,6 +1473,84 @@
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Send Inquiry →';
+    }
+  });
+</script>
+
+<!-- ─── DEMO ACCESS MODAL ─── -->
+<div class="modal-overlay" id="demo-modal">
+  <div class="modal-box" style="position:relative;">
+    <button class="modal-close" id="modal-close">&times;</button>
+    <h3>Partner Demo Access</h3>
+    <p>Enter your pilot access code to view the live platform demo.</p>
+    <form id="demo-form" autocomplete="off">
+      <input type="password" class="modal-input" id="demo-pass" placeholder="Access code" autofocus />
+      <div class="modal-error" id="demo-error"></div>
+      <button type="submit" class="modal-submit">Access Demo →</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Demo access gate
+  const DEMO_HASH = '7ac2a8cdba5b75250bd14a322a6c11a722b0aaa915c44d6a58739124cecdd6c1'; // SHA-256 of 'voltek2026'
+  const modal = document.getElementById('demo-modal');
+  const demoForm = document.getElementById('demo-form');
+  const demoPass = document.getElementById('demo-pass');
+  const demoError = document.getElementById('demo-error');
+  const modalClose = document.getElementById('modal-close');
+
+  // Intercept "Start Pilot" nav CTA and hero CTA
+  document.querySelectorAll('a[href="#contact"].nav-cta, a.btn-primary[href="#contact"]').forEach(btn => {
+    // Only intercept the nav "Start Pilot" button
+    if (btn.classList.contains('nav-cta')) {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        modal.classList.add('active');
+        setTimeout(() => demoPass.focus(), 100);
+      });
+    }
+  });
+
+  modalClose.addEventListener('click', () => {
+    modal.classList.remove('active');
+    demoPass.value = '';
+    demoError.textContent = '';
+    demoPass.classList.remove('error');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modalClose.click();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) modalClose.click();
+  });
+
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  demoForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const val = demoPass.value.trim();
+    if (!val) {
+      demoError.textContent = 'Please enter your access code.';
+      demoPass.classList.add('error');
+      return;
+    }
+    const hash = await sha256(val);
+    if (hash === DEMO_HASH) {
+      demoError.textContent = '';
+      demoPass.classList.remove('error');
+      window.location.href = '/voltek-demo.html';
+    } else {
+      demoError.textContent = 'Invalid access code. Contact your PowerRoof representative.';
+      demoPass.classList.add('error');
+      demoPass.select();
     }
   });
 </script>
