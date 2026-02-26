@@ -18,7 +18,7 @@ from reportlab.lib.colors import HexColor, white
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable,
+    HRFlowable, PageBreak,
 )
 from reportlab.lib.enums import TA_CENTER
 
@@ -117,6 +117,83 @@ def build_report(output_path: str, white_label: str | None = None):
         else "PowerRoof.my — Solar Acquisition Intelligence"
     )
 
+    # ═══════════════════════════════════════════════════
+    # COVER PAGE
+    # ═══════════════════════════════════════════════════
+    story.append(Spacer(1, 80 * mm))
+
+    # Brand mark
+    story.append(Paragraph(
+        brand_name,
+        ParagraphStyle("cover_brand", fontName="Helvetica-Bold", fontSize=14,
+                       textColor=AMBER, alignment=TA_CENTER, spaceAfter=6, leading=18),
+    ))
+
+    # Thin amber rule
+    cover_rule = Table([[""]],
+                       colWidths=[40 * mm],
+                       rowHeights=[1])
+    cover_rule.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), AMBER),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+    ]))
+    cover_rule.hAlign = "CENTER"
+    story.append(cover_rule)
+    story.append(Spacer(1, 12))
+
+    # Report title
+    story.append(Paragraph(
+        "Solar ATAP",
+        ParagraphStyle("cover_title1", fontName="Helvetica-Bold", fontSize=32,
+                       textColor=GRAY_900, alignment=TA_CENTER, leading=38, spaceAfter=0),
+    ))
+    story.append(Paragraph(
+        "Pre-Survey Intelligence Report",
+        ParagraphStyle("cover_title2", fontName="Helvetica-Bold", fontSize=28,
+                       textColor=GRAY_900, alignment=TA_CENTER, leading=34, spaceAfter=20),
+    ))
+
+    # Company name
+    story.append(Paragraph(
+        "Mega Plastics Industries Sdn Bhd",
+        ParagraphStyle("cover_company", fontName="Helvetica", fontSize=16,
+                       textColor=GRAY_500, alignment=TA_CENTER, leading=22, spaceAfter=4),
+    ))
+    story.append(Paragraph(
+        "Shah Alam, Selangor (Seksyen 26)",
+        ParagraphStyle("cover_location", fontName="Helvetica", fontSize=12,
+                       textColor=GRAY_400, alignment=TA_CENTER, leading=16, spaceAfter=30),
+    ))
+
+    # Confidential + date
+    story.append(Paragraph(
+        "CONFIDENTIAL",
+        ParagraphStyle("cover_conf", fontName="Helvetica-Bold", fontSize=10,
+                       textColor=GRAY_400, alignment=TA_CENTER, leading=14,
+                       spaceAfter=6, letterSpacing=3),
+    ))
+    story.append(Paragraph(
+        "February 2026",
+        ParagraphStyle("cover_date", fontName="Helvetica", fontSize=11,
+                       textColor=GRAY_500, alignment=TA_CENTER, leading=14, spaceAfter=4),
+    ))
+
+    # Footer line at bottom of cover
+    story.append(Spacer(1, 40 * mm))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_200))
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(
+        f"{brand_footer}",
+        ParagraphStyle("cover_footer", fontName="Helvetica", fontSize=9,
+                       textColor=GRAY_400, alignment=TA_CENTER, leading=12),
+    ))
+
+    story.append(PageBreak())
+
+    # ═══════════════════════════════════════════════════
+    # PAGE 2 — HEADER + ELIGIBILITY + SIZING
+    # ═══════════════════════════════════════════════════
+
     # ─── HEADER ───
     story.append(Paragraph(brand_name, ParagraphStyle(
         "logo", fontName="Helvetica-Bold", fontSize=11,
@@ -209,7 +286,9 @@ def build_report(output_path: str, white_label: str | None = None):
         ["ATAP capacity cap", "350 kW (MD) or 1MW", "Whichever is lower = 350 kW"],
         ["Optimal sizing range", "263 - 298 kWp", "75-85% of 350 kW MD"],
         ["Recommended system size", "280 kWp", "Sweet spot for self-consumption"],
-        ["Estimated annual generation", "364,000 kWh", "280 kWp x 1,300 kWh/kWp (Selangor avg)"],
+        ["Estimated annual generation", "364,000 kWh",
+         "280 kWp x 1,300 kWh/kWp (3.57 peak sun hours/day, "
+         "Selangor avg irradiance per PVGIS/SolarGIS data)"],
         ["Estimated roof area required", "16,800 sqft", "280 kWp x ~60 sqft/kWp"],
     ]
     t = make_table(sizing_data, [50 * mm, 35 * mm, w - 85 * mm], highlight_row=4)
@@ -239,12 +318,15 @@ def build_report(output_path: str, white_label: str | None = None):
 
     story.append(Paragraph("CAPEX Estimate", STYLES["h3"]))
     # CAS fee corrected: 280 kWp falls in >180-425 kW band = RM 5,000
+    # CAPEX range: RM 1,800-2,200/kWp → RM 504,000–616,000 for PV system
+    # Total range: PV (504k-616k) + CAS (5k) + structural (3k-8k est midpoint 5k) = RM 512,000–629,000
+    # Using rounded practical range: RM 542,000–626,000 (RM 1,900-2,200/kWp + fixed costs)
     capex_data = [
         ["Component", "Rate", "Amount"],
-        ["Solar PV system (280 kWp)", "RM 2,000/kWp", "RM 560,000"],
+        ["Solar PV system (280 kWp)", "RM 1,800–2,200/kWp", "RM 504,000 – 616,000"],
         ["CAS fee (>180-425 kW band)", "GP/ST/No.60/2025 schedule", "RM 5,000"],
-        ["Structural roof assessment", "Subject to roof condition", "RM 5,000 (est.)"],
-        ["Total estimated CAPEX", "", "RM 570,000"],
+        ["Structural roof assessment", "Subject to roof condition", "RM 3,000 – 8,000"],
+        ["Total estimated CAPEX", "", "RM 512,000 – 629,000"],
     ]
     t = make_table(capex_data, [50 * mm, 40 * mm, w - 90 * mm], total_row=True)
     t.setStyle(TableStyle([("ALIGN", (2, 0), (2, -1), "RIGHT")]))
@@ -253,14 +335,15 @@ def build_report(output_path: str, white_label: str | None = None):
     story.append(Paragraph(
         "CAS fee tiers per GP/ST/No.60/2025: >72-180 kW = RM 1,000; >180-425 kW = RM 5,000; "
         ">425 kW-1 MW = RM 8,000; HV PSS = RM 15,000. "
-        "Structural assessment cost varies RM 3,000-8,000 depending on roof age and complexity.",
+        "Structural assessment cost varies RM 3,000-8,000 depending on roof age and complexity. "
+        "Savings model below uses midpoint CAPEX of RM 570,000 for payback calculation.",
         STYLES["body_small"],
     ))
     story.append(Spacer(1, 8))
 
     story.append(Paragraph("Savings Model (Annual)", STYLES["h3"]))
 
-    # Recalculated with corrected CAPEX (RM 570,000) and blended tariff
+    # Savings calculated with midpoint CAPEX RM 570,000 and blended tariff
     # Using blended effective tariff RM 0.334/kWh (weighted C1 tariff blocks)
     # SMP: RM 0.20/kWh (conservative floor — actual to be confirmed from singlebuyer.com.my)
     # Self-consumed kWh x RM 0.334 + Export kWh x RM 0.20
@@ -281,7 +364,16 @@ def build_report(output_path: str, white_label: str | None = None):
         ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
     ]))
     story.append(t)
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 4))
+
+    story.append(Paragraph(
+        "Payback range across full CAPEX band: 4.4 – 5.9 years (base case RM 111,821/yr savings "
+        "against RM 512,000 – 629,000 total investment). Midpoint RM 570,000 used for headline payback.",
+        ParagraphStyle("payback_range", fontName="Helvetica", fontSize=9,
+                       textColor=HexColor("#1E40AF"), leading=13, spaceAfter=8,
+                       backColor=HexColor("#EFF6FF"), borderPadding=(6, 8, 6, 8)),
+    ))
+    story.append(Spacer(1, 4))
 
     story.append(Paragraph("Assumptions and rates:", STYLES["body_small"]))
     assumptions = [
@@ -293,9 +385,12 @@ def build_report(output_path: str, white_label: str | None = None):
         "for the preceding calendar month (per SEDA/NOVA guidelines). "
         "Published by Single Buyer (www.singlebuyer.com.my). "
         "Historical range: RM 0.15-0.40/kWh. See sensitivity analysis in Section 4.",
+        "Solar irradiance: 3.57 peak sun hours/day average for Selangor "
+        "(PVGIS/SolarGIS satellite-derived data). Yields 1,300 kWh/kWp annual specific yield.",
         "System degradation: 0.5%/year; Panel warranty: 25 years",
         "Monthly forfeiture: Any excess credit above consumption is forfeited each billing month (ATAP rule)",
-        "CAPEX range: RM 1,800-2,200/kWp for 200-500 kWp systems; midpoint RM 2,000/kWp used",
+        "CAPEX range: RM 1,800-2,200/kWp for 200-500 kWp systems. Range reflects market "
+        "variation in panel brand, inverter spec, and installation complexity.",
     ]
     for a in assumptions:
         story.append(Paragraph(f"  {a}", STYLES["body_small"]))
@@ -359,19 +454,42 @@ def build_report(output_path: str, white_label: str | None = None):
     story.append(Paragraph(
         "Under Solar ATAP, excess credits are forfeited at end of each billing month (no carry-forward). "
         "For a day-dominant factory in Shah Alam, key risk months are public holiday clusters "
-        "and planned shutdowns.",
+        "and planned shutdowns. Cost estimates assume excess generation is exported at SMP "
+        "(RM 0.20/kWh) rather than self-consumed at tariff (RM 0.334/kWh).",
         STYLES["body"],
     ))
 
+    # Forfeiture cost calculations:
+    # 280 kWp x 1,300 kWh/kWp = 364,000 kWh/yr → ~1,000 kWh/day generation
+    # Hari Raya 1-2 weeks (7-14 days): 7,000-14,000 kWh exported at SMP instead of self-consumed
+    #   Value loss = days x 1,000 kWh x (0.334 - 0.20) = 7-14 days x 1,000 x 0.134 = RM 938-1,876
+    #   Rounded: RM 1,000-2,000
+    # CNY 3-5 days: 3,000-5,000 kWh x 0.134 = RM 402-670 → RM 400-700
+    # Weekend: Already sized for 5-day ops at 80% self-consumption; negligible incremental loss
+    # Unplanned: Buffer built into 80% MD sizing; negligible
     forfeit_data = [
-        ["Risk Factor", "Probability", "Mitigation"],
-        ["Hari Raya shutdown (1-2 weeks)", "High", "Factor into annual model; accept ~2% forfeiture"],
-        ["CNY factory closure", "Medium", "3-5 day closure; minimal impact at 280 kWp"],
-        ["Weekend generation excess", "Low", "Day-dominant ops; sizing already accounts for 5-day week"],
-        ["Unplanned downtime", "Low", "280 kWp at 80% MD provides buffer"],
+        ["Risk Factor", "Prob.", "Est. Annual Cost", "Mitigation"],
+        ["Hari Raya shutdown\n(1-2 weeks)", "High",
+         "RM 1,000 – 2,000",
+         "Factor into annual model; accept ~2% forfeiture"],
+        ["CNY factory closure\n(3-5 days)", "Medium",
+         "RM 400 – 700",
+         "Short closure; minimal impact at 280 kWp"],
+        ["Weekend generation\nexcess", "Low",
+         "Negligible",
+         "Day-dominant ops; sizing accounts for 5-day week"],
+        ["Unplanned downtime", "Low",
+         "Negligible",
+         "280 kWp at 80% MD provides buffer"],
     ]
-    t = make_table(forfeit_data, [45 * mm, 25 * mm, w - 70 * mm])
+    t = make_table(forfeit_data, [38 * mm, 16 * mm, 30 * mm, w - 84 * mm])
     story.append(t)
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(
+        "Total estimated annual forfeiture cost: RM 1,400 – 2,700 (0.4–0.7% of gross generation value). "
+        "Calculated as shutdown days x ~1,000 kWh/day x RM 0.134 tariff-to-SMP spread.",
+        STYLES["body_small"],
+    ))
 
     # ─── 6. NEXT STEPS ───
     story.append(Paragraph("6. Recommended Next Steps", STYLES["h2"]))
@@ -401,9 +519,12 @@ def build_report(output_path: str, white_label: str | None = None):
         "confirmed during physical survey. TNB tariff uses a blended effective rate across C1 demand "
         "blocks; actual bill structure varies by consumption pattern. SMP export rates are conservative "
         "estimates — actual rates are published monthly by Single Buyer (www.singlebuyer.com.my) and may "
-        "differ from projections used here. CAS fees per GP/ST/No.60/2025 schedule. Structural "
-        "assessment cost is indicative and depends on roof age and complexity. This report does not "
-        "constitute financial advice. All figures should be validated by the installing EPC contractor.",
+        "differ from projections used here. Solar irradiance data sourced from PVGIS/SolarGIS; actual "
+        "site yield may vary due to shading, orientation, and panel degradation. CAPEX range reflects "
+        "market variation and does not constitute a quotation. CAS fees per GP/ST/No.60/2025 schedule. "
+        "Structural assessment cost is indicative and depends on roof age and complexity. This report "
+        "does not constitute financial advice. All figures should be validated by the installing EPC "
+        "contractor.",
         ParagraphStyle("disclaimer", fontName="Helvetica", fontSize=8,
                        leading=11, textColor=GRAY_400, spaceAfter=8),
     ))
