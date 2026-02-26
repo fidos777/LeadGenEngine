@@ -1878,7 +1878,7 @@ if __name__ == "__main__":
 
     # Satellite imagery flags (Premium only)
     lat_str = get_arg("--lat")
-    lng_str = get_arg("--lng")
+    lng_str = get_arg("--lng") or get_arg("--lon")  # accept both --lng and --lon
     api_key = get_arg("--api-key") or os.environ.get("GOOGLE_MAPS_API_KEY")
 
     if lat_str and lng_str:
@@ -1894,7 +1894,8 @@ if __name__ == "__main__":
         print("[INFO] --lat/--lng provided but no --api-key — satellite image skipped")
         print("       Set GOOGLE_MAPS_API_KEY env var or pass --api-key YOUR_KEY")
 
-    output = os.path.join(project_root, "reports", f"dossier-{tier}.pdf")
+    # Output path: use --output flag if provided, else default to reports/dossier-{tier}.pdf
+    output = get_arg("--output") or os.path.join(project_root, "reports", f"dossier-{tier}.pdf")
     build_dossier(output, tier=tier, white_label=white_label,
                   lat=lat, lng=lng, api_key=api_key)
 
