@@ -130,14 +130,22 @@ export default function IntelligenceLibraryPage() {
           <Link
             href="/"
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
               color: "#fff",
-              fontWeight: 700,
-              fontSize: 18,
+              fontWeight: 600,
+              fontSize: 17,
               textDecoration: "none",
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.01em",
             }}
           >
-            POWERROOF
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+              <path d="M3 14L13 5L23 14" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <rect x="6" y="14" width="14" height="10" rx="1" stroke="#F59E0B" strokeWidth="1.5" opacity="0.3"/>
+              <path d="M14 13L11 18H15L12 23" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Power<span style={{ color: "#F59E0B" }}>Roof</span>
           </Link>
           <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
             <Link
