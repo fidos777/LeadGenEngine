@@ -1370,10 +1370,38 @@ main {
       </div>
     </div>
     <div style="display:flex;gap:12px;align-items:center">
-      <a href="/reports/voltek-presurvey-report.pdf" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:12px;font-weight:600;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--amber);text-decoration:none;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border)'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Pre-Survey Report
-      </a>
+      <!-- Tier Report Dropdown -->
+      <div style="position:relative" id="report-dropdown">
+        <button onclick="document.getElementById('report-menu').classList.toggle('show')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:12px;font-weight:600;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--amber);cursor:pointer;transition:all .2s;font-family:inherit" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Dossier Report
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="report-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;min-width:240px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+          <a href="/reports/voltek-dossier-basic.pdf" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;text-decoration:none;color:var(--text);font-size:12px;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <div><div style="font-weight:600">Basic — Quick Fit Snapshot</div><div style="color:var(--text-dim);font-size:10px;margin-top:2px">Eligibility check · Lead magnet</div></div>
+            <span style="font-family:monospace;font-size:10px;color:var(--text-dim);padding:2px 6px;border:1px solid var(--border);border-radius:4px">FREE</span>
+          </a>
+          <a href="/reports/voltek-dossier-pro.pdf" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;text-decoration:none;color:var(--text);font-size:12px;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <div><div style="font-weight:600">Pro — Feasibility Assessment</div><div style="color:var(--text-dim);font-size:10px;margin-top:2px">Financial model · SMP sensitivity · Cashflow</div></div>
+            <span style="font-family:monospace;font-size:10px;color:var(--amber);padding:2px 6px;border:1px solid rgba(245,158,11,.3);border-radius:4px">RM 1K</span>
+          </a>
+          <a href="/reports/voltek-dossier-premium.pdf" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;text-decoration:none;color:var(--text);font-size:12px;transition:background .15s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='transparent'">
+            <div><div style="font-weight:600;color:var(--amber)">Premium — Intelligence Dossier</div><div style="color:var(--text-dim);font-size:10px;margin-top:2px">Roof analysis · Layout · Carbon · Full report</div></div>
+            <span style="font-family:monospace;font-size:10px;color:var(--amber);padding:2px 6px;border:1px solid rgba(245,158,11,.3);border-radius:4px;background:rgba(245,158,11,.08)">RM 2K</span>
+          </a>
+        </div>
+      </div>
+      <style>
+        #report-menu.show { display:block !important; }
+      </style>
+      <script>
+        document.addEventListener('click', function(e) {
+          if (!document.getElementById('report-dropdown').contains(e.target)) {
+            document.getElementById('report-menu').classList.remove('show');
+          }
+        });
+      </script>
       <span class="status-badge hot" style="font-size:12px;padding:8px 16px">Survey Ready</span>
     </div>
   </div>
@@ -1548,7 +1576,7 @@ main {
               <div class="timeline-dot amber"></div>
               <div class="timeline-content">
                 <div class="timeline-action">Pre-survey report delivered to En. Ahmad Razak
-                  <a href="/reports/voltek-presurvey-report.pdf" target="_blank" style="margin-left:8px;font-size:11px;color:var(--amber);text-decoration:none;font-weight:600">View PDF ↗</a>
+                  <a href="/reports/voltek-dossier-premium.pdf" target="_blank" style="margin-left:8px;font-size:11px;color:var(--amber);text-decoration:none;font-weight:600">View PDF ↗</a>
                 </div>
                 <div class="timeline-meta">Feb 24 · PowerRoof Intelligence Engine · PDF sent via email</div>
               </div>

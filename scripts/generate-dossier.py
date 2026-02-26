@@ -1005,18 +1005,18 @@ def section_carbon_esg(story, p):
 
     story.append(Paragraph(
         f"Based on {p['annual_gen_kwh']:,} kWh annual generation displacing grid electricity "
-        "with Malaysian grid emission factor of ~0.7 kg CO₂/kWh:",
+        "with Malaysian grid emission factor of ~0.7 kg CO2/kWh:",
         S["body"],
     ))
 
     carbon_data = [
         ["Metric", "Annual Impact"],
-        ["CO₂ emissions avoided", f"~{p['co2_tonnes']} tonnes/year"],
-        ["Equivalent: passenger vehicles removed", f"~{p['cars_equivalent']} cars"],
+        ["CO2 emissions avoided", f"~{p['co2_tonnes']} tonnes/year"],
+        ["Equivalent: vehicles removed from road", f"~{p['cars_equivalent']} passenger cars"],
         ["Equivalent: trees planted", f"~{p['trees_equivalent']:,} trees"],
-        ["25-year lifetime CO₂ avoidance", f"~{int(p['co2_tonnes'] * 23.5):,} tonnes"],
+        ["25-year lifetime CO2 avoidance", f"~{int(p['co2_tonnes'] * 23.5):,} tonnes"],
     ]
-    t = Table(carbon_data, colWidths=[55 * mm, USABLE_W - 55 * mm])
+    t = Table(carbon_data, colWidths=[65 * mm, USABLE_W - 65 * mm])
     t.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTNAME", (1, 1), (1, -1), "Helvetica-Bold"),
