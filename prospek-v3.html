@@ -941,92 +941,92 @@
       </div>
     </div>
 
-    <!-- Product mockup panel -->
+    <!-- Product mockup panel — mirrors demo Command Overview -->
     <div class="hero-visual reveal">
       <div class="panel-chrome">
         <div class="chrome-dot"></div>
         <div class="chrome-dot"></div>
         <div class="chrome-dot"></div>
-        <div class="chrome-url">app.powerroof.my/control</div>
+        <div class="chrome-url">app.powerroof.my/command</div>
       </div>
-      <div class="panel-body">
-        <div class="panel-sidebar">
-          <div class="sidebar-item active">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="2"/><line x1="1" y1="5.5" x2="15" y2="5.5"/></svg>
-            Control Panel
+      <div class="panel-body" style="display:flex;flex-direction:column;gap:0;padding:0;">
+        <!-- Nav tabs -->
+        <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 16px;">
+          <div style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent)">Overview</div>
+          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Discovery</div>
+          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Pipeline</div>
+          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Lead Detail</div>
+          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Caller</div>
+          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Performance</div>
+        </div>
+        <!-- KPI row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
+            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Pipeline (kWp)</div>
+            <div style="font-size:24px;font-weight:700;color:var(--accent);letter-spacing:-0.5px">2,840</div>
+            <div style="font-size:10px;color:#22C55E;margin-top:4px">↑ 640 kWp this month</div>
           </div>
-          <div class="sidebar-item">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2"/></svg>
-            Discovery
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
+            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Revenue In Play</div>
+            <div style="font-size:24px;font-weight:700;color:#22C55E;letter-spacing:-0.5px">RM 284K</div>
+            <div style="font-size:10px;color:#22C55E;margin-top:4px">↑ 3 new prospects</div>
           </div>
-          <div class="sidebar-item">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
-            Pipeline
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
+            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Factories Mapped</div>
+            <div style="font-size:24px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px">161</div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px">6 of 15 zones active</div>
           </div>
-          <div class="sidebar-item">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
-            Enrichment
-          </div>
-          <div class="sidebar-item">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="4" height="8" rx="1"/><rect x="10" y="2" width="4" height="12" rx="1"/></svg>
-            Reports
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
+            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">ATAP Eligible</div>
+            <div style="font-size:24px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px">94</div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px">58% pass rate</div>
           </div>
         </div>
-        <div class="panel-content">
-          <div class="panel-row">
-            <div class="stat-card">
-              <div class="stat-label">Properties Mapped</div>
-              <div class="stat-value">1,247</div>
-              <div class="stat-change up">+83 this week</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Qualified Leads</div>
-              <div class="stat-value">227</div>
-              <div class="stat-change up">18.2% conversion</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Appointments</div>
-              <div class="stat-value">28</div>
-              <div class="stat-change up">+12 vs last month</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Proposals Sent</div>
-              <div class="stat-value">5</div>
-              <div class="stat-change up">35.7% close rate</div>
-            </div>
-          </div>
-          <table class="panel-table">
-            <thead>
-              <tr>
-                <th>Segment</th>
-                <th>Prospects</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span class="seg-dot" style="background:var(--seg-1)"></span>Factories & Manufacturers</td>
-                <td>312</td>
-                <td><span class="table-status active">Active</span></td>
-              </tr>
-              <tr>
-                <td><span class="seg-dot" style="background:var(--seg-2)"></span>Warehouses & Logistics</td>
-                <td>187</td>
-                <td><span class="table-status warming">Warming</span></td>
-              </tr>
-              <tr>
-                <td><span class="seg-dot" style="background:var(--seg-3)"></span>Commercial Buildings</td>
-                <td>94</td>
-                <td><span class="table-status scanning">Scanning</span></td>
-              </tr>
-              <tr>
-                <td><span class="seg-dot" style="background:var(--seg-4)"></span>Premium Residential</td>
-                <td>634</td>
-                <td><span class="table-status live">Live Ads</span></td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Priority Deals table -->
+        <div style="padding:0 16px 4px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-primary);margin-bottom:8px">Priority Deals — This Week</div>
         </div>
+        <table class="panel-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>kWp</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Next Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span style="color:var(--text-primary);font-weight:500">Mega Plastics Sdn Bhd</span><br><span style="font-size:10px;color:var(--text-tertiary)">Shah Alam · Plastics</span></td>
+              <td>280</td>
+              <td><span style="background:#166534;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">82</span></td>
+              <td><span class="table-status active">Survey Ready</span></td>
+              <td style="color:var(--accent);font-size:11px">Book site visit</td>
+            </tr>
+            <tr>
+              <td><span style="color:var(--text-primary);font-weight:500">Klang Metal Works</span><br><span style="font-size:10px;color:var(--text-tertiary)">Klang · Metal Fab</span></td>
+              <td>350</td>
+              <td><span style="background:#166534;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">78</span></td>
+              <td><span class="table-status warming">Proposal Sent</span></td>
+              <td style="color:var(--text-tertiary);font-size:11px">Follow up Tue</td>
+            </tr>
+            <tr>
+              <td><span style="color:var(--text-primary);font-weight:500">PJ Packaging Bhd</span><br><span style="font-size:10px;color:var(--text-tertiary)">PJ · Packaging</span></td>
+              <td>220</td>
+              <td><span style="background:#166534;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">75</span></td>
+              <td><span class="table-status warming">Appointment Set</span></td>
+              <td style="color:var(--text-tertiary);font-size:11px">Site visit Mon</td>
+            </tr>
+            <tr>
+              <td><span style="color:var(--text-primary);font-weight:500">Subang Food Industries</span><br><span style="font-size:10px;color:var(--text-tertiary)">Subang · Food Mfg</span></td>
+              <td>300</td>
+              <td><span style="background:#92400E;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">68</span></td>
+              <td><span class="table-status scanning">Contacted</span></td>
+              <td style="color:var(--text-tertiary);font-size:11px">Await callback</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
