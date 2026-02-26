@@ -12,6 +12,11 @@ Usage:
     python scripts/generate-dossier.py --tier pro
     python scripts/generate-dossier.py --tier basic
 
+    # With satellite imagery (Premium only):
+    python scripts/generate-dossier.py --tier premium --lat 3.0658 --lng 101.5183 --api-key YOUR_KEY
+    # Or via environment variable:
+    GOOGLE_MAPS_API_KEY=xxx python scripts/generate-dossier.py --tier premium --lat 3.0658 --lng 101.5183
+
 Output:
     reports/dossier-{tier}.pdf
 """
@@ -19,19 +24,28 @@ Output:
 import os
 import sys
 import math
+import tempfile
+import io
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor, white, black, Color
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable, PageBreak, KeepTogether,
+    HRFlowable, PageBreak, KeepTogether, Image as RLImage,
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Circle, Polygon
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.charts.linecharts import HorizontalLineChart
 from reportlab.graphics import renderPDF
+
+try:
+    import requests
+    from PIL import Image as PILImage, ImageDraw, ImageFont
+    HAS_IMAGE_DEPS = True
+except ImportError:
+    HAS_IMAGE_DEPS = False
 
 # ─── Color Palette ───
 AMBER = HexColor("#F59E0B")
@@ -56,6 +70,114 @@ GRAY_50 = HexColor("#FAFAFA")
 PAGE_W, PAGE_H = A4
 MARGIN = 20 * mm
 USABLE_W = PAGE_W - 2 * MARGIN
+
+
+# ─── Satellite Image & Roof Overlay ───
+
+def fetch_satellite_image(lat: float, lng: float, api_key: str,
+                          zoom: int = 19, size: str = "800x500") -> PILImage.Image | None:
+    """Fetch satellite image from Google Static Maps API."""
+    if not HAS_IMAGE_DEPS:
+        print("[WARN] Pillow/requests not installed — skipping satellite image")
+        return None
+
+    url = (
+        f"https://maps.googleapis.com/maps/api/staticmap?"
+        f"center={lat},{lng}&zoom={zoom}&size={size}"
+        f"&maptype=satellite&key={api_key}"
+    )
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        img = PILImage.open(io.BytesIO(resp.content))
+        print(f"[OK] Satellite image fetched: {img.size[0]}x{img.size[1]}")
+        return img
+    except Exception as e:
+        print(f"[WARN] Failed to fetch satellite image: {e}")
+        return None
+
+
+def generate_roof_overlay(sat_img: PILImage.Image, size_kwp: int,
+                          panel_w_px: int = 18, panel_h_px: int = 10,
+                          gap_px: int = 3) -> PILImage.Image:
+    """
+    Overlay a panel grid on the satellite image.
+    Draws amber rectangles in a centered grid representing the panel layout.
+    """
+    img = sat_img.copy().convert("RGBA")
+    overlay = PILImage.new("RGBA", img.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    panels_needed = math.ceil(size_kwp * 1000 / 550)
+    cols = int(math.sqrt(panels_needed * 1.5))  # wider than tall
+    rows = math.ceil(panels_needed / cols)
+
+    # Center the grid
+    grid_w = cols * (panel_w_px + gap_px)
+    grid_h = rows * (panel_h_px + gap_px)
+    start_x = (img.size[0] - grid_w) // 2
+    start_y = (img.size[1] - grid_h) // 2
+
+    # Draw usable area rectangle (semi-transparent)
+    margin = 12
+    draw.rectangle(
+        [start_x - margin, start_y - margin,
+         start_x + grid_w + margin, start_y + grid_h + margin],
+        outline=(245, 158, 11, 180), width=2,
+    )
+
+    # Draw panels
+    count = 0
+    for r in range(rows):
+        for c in range(cols):
+            if count >= panels_needed:
+                break
+            x = start_x + c * (panel_w_px + gap_px)
+            y = start_y + r * (panel_h_px + gap_px)
+            draw.rectangle(
+                [x, y, x + panel_w_px, y + panel_h_px],
+                fill=(245, 158, 11, 100),
+                outline=(245, 158, 11, 200),
+                width=1,
+            )
+            count += 1
+
+    # Draw inverter cluster marker (center-bottom of grid)
+    inv_x = start_x + grid_w // 2
+    inv_y = start_y + grid_h + margin + 15
+    draw.ellipse([inv_x - 8, inv_y - 8, inv_x + 8, inv_y + 8],
+                 fill=(34, 197, 94, 180), outline=(255, 255, 255, 200), width=1)
+
+    # North arrow (top-right)
+    nx, ny = img.size[0] - 40, 30
+    draw.polygon([(nx, ny - 12), (nx - 6, ny + 6), (nx + 6, ny + 6)],
+                 fill=(255, 255, 255, 200))
+    try:
+        draw.text((nx - 3, ny + 9), "N", fill=(255, 255, 255, 220))
+    except Exception:
+        pass
+
+    # Legend
+    legend_y = img.size[1] - 30
+    draw.rectangle([10, legend_y - 4, 10 + panel_w_px, legend_y + panel_h_px - 4],
+                   fill=(245, 158, 11, 100), outline=(245, 158, 11, 200), width=1)
+    try:
+        draw.text((32, legend_y - 4), f"PV Panel ({panels_needed} units)", fill=(255, 255, 255, 220))
+        draw.ellipse([220, legend_y - 2, 230, legend_y + 8],
+                     fill=(34, 197, 94, 180), outline=(255, 255, 255, 200), width=1)
+        draw.text((235, legend_y - 4), "Inverter Cluster", fill=(255, 255, 255, 220))
+    except Exception:
+        pass
+
+    return PILImage.alpha_composite(img, overlay).convert("RGB")
+
+
+def save_image_for_pdf(pil_img: PILImage.Image, label: str = "satellite") -> str:
+    """Save PIL image to temp file for ReportLab embedding."""
+    tmp = tempfile.NamedTemporaryFile(suffix=f"_{label}.jpg", delete=False)
+    pil_img.save(tmp, format="JPEG", quality=90)
+    tmp.close()
+    return tmp.name
 
 # ─── Styles ───
 S = {
@@ -609,8 +731,8 @@ def section_facility_intelligence(story, p):
     story.append(t)
 
 
-def section_roof_intelligence(story, p):
-    """Roof Intelligence placeholder — Premium only."""
+def section_roof_intelligence(story, p, sat_image_path=None):
+    """Roof Intelligence — Premium only. Uses real satellite image if available."""
     story.append(Paragraph("Roof Intelligence Analysis", S["h2"]))
 
     story.append(Paragraph(
@@ -619,26 +741,38 @@ def section_roof_intelligence(story, p):
         S["body"],
     ))
 
-    # Placeholder for satellite image
-    placeholder = Table(
-        [[Paragraph(
-            "<b>SATELLITE ROOF IMAGE</b><br/><br/>"
-            "Insert annotated satellite image here<br/>"
-            "showing usable panel area, obstruction zones,<br/>"
-            "and north orientation marker.<br/><br/>"
-            "<i>Source: Google Static Maps API</i>",
-            ParagraphStyle("ph", fontName="Helvetica", fontSize=10,
-                           textColor=GRAY_400, alignment=TA_CENTER, leading=16),
-        )]],
-        colWidths=[USABLE_W],
-        rowHeights=[120],
-    )
-    placeholder.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), GRAY_50),
-        ("BOX", (0, 0), (-1, -1), 1, GRAY_300),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
-    story.append(placeholder)
+    if sat_image_path and os.path.exists(sat_image_path):
+        # Real satellite image
+        img_w = USABLE_W
+        img_h = USABLE_W * 0.625  # 800x500 aspect ratio
+        story.append(RLImage(sat_image_path, width=img_w, height=img_h))
+        story.append(Spacer(1, 4))
+        story.append(Paragraph(
+            "Source: Google Static Maps API · Satellite imagery for reference only · Subject to site verification",
+            ParagraphStyle("img_caption", fontName="Helvetica", fontSize=8,
+                           textColor=GRAY_400, alignment=TA_CENTER, leading=11),
+        ))
+    else:
+        # Placeholder
+        placeholder = Table(
+            [[Paragraph(
+                "<b>SATELLITE ROOF IMAGE</b><br/><br/>"
+                "Insert annotated satellite image here<br/>"
+                "showing usable panel area, obstruction zones,<br/>"
+                "and north orientation marker.<br/><br/>"
+                "<i>Source: Google Static Maps API</i>",
+                ParagraphStyle("ph", fontName="Helvetica", fontSize=10,
+                               textColor=GRAY_400, alignment=TA_CENTER, leading=16),
+            )]],
+            colWidths=[USABLE_W],
+            rowHeights=[120],
+        )
+        placeholder.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), GRAY_50),
+            ("BOX", (0, 0), (-1, -1), 1, GRAY_300),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(placeholder)
     story.append(Spacer(1, 8))
 
     roof_data = [
@@ -665,8 +799,8 @@ def section_roof_intelligence(story, p):
     story.append(t)
 
 
-def section_layout_concept(story, p):
-    """Layout concept placeholder — Premium only."""
+def section_layout_concept(story, p, overlay_image_path=None):
+    """Layout concept — Premium only. Uses real overlay if available."""
     story.append(Paragraph("Preliminary Layout Concept", S["h2"]))
 
     story.append(Paragraph(
@@ -678,25 +812,39 @@ def section_layout_concept(story, p):
 
     panels_needed = math.ceil(p["size_kwp"] * 1000 / 550)
 
-    placeholder = Table(
-        [[Paragraph(
-            "<b>PANEL LAYOUT OVERLAY</b><br/><br/>"
-            f"Insert roof overlay showing {panels_needed} panels<br/>"
-            "in grid formation with row spacing,<br/>"
-            "inverter cluster position, and cable routing.<br/><br/>"
-            "<i>Subject to site verification</i>",
-            ParagraphStyle("ph2", fontName="Helvetica", fontSize=10,
-                           textColor=GRAY_400, alignment=TA_CENTER, leading=16),
-        )]],
-        colWidths=[USABLE_W],
-        rowHeights=[120],
-    )
-    placeholder.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), GRAY_50),
-        ("BOX", (0, 0), (-1, -1), 1, GRAY_300),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
-    story.append(placeholder)
+    if overlay_image_path and os.path.exists(overlay_image_path):
+        # Real overlay image
+        img_w = USABLE_W
+        img_h = USABLE_W * 0.625
+        story.append(RLImage(overlay_image_path, width=img_w, height=img_h))
+        story.append(Spacer(1, 4))
+        story.append(Paragraph(
+            f"Conceptual layout: ~{panels_needed} x 550W panels · Amber = panel zones · "
+            "Green = inverter cluster · Subject to site verification",
+            ParagraphStyle("overlay_caption", fontName="Helvetica", fontSize=8,
+                           textColor=GRAY_400, alignment=TA_CENTER, leading=11),
+        ))
+    else:
+        # Placeholder
+        placeholder = Table(
+            [[Paragraph(
+                "<b>PANEL LAYOUT OVERLAY</b><br/><br/>"
+                f"Insert roof overlay showing {panels_needed} panels<br/>"
+                "in grid formation with row spacing,<br/>"
+                "inverter cluster position, and cable routing.<br/><br/>"
+                "<i>Subject to site verification</i>",
+                ParagraphStyle("ph2", fontName="Helvetica", fontSize=10,
+                               textColor=GRAY_400, alignment=TA_CENTER, leading=16),
+            )]],
+            colWidths=[USABLE_W],
+            rowHeights=[120],
+        )
+        placeholder.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), GRAY_50),
+            ("BOX", (0, 0), (-1, -1), 1, GRAY_300),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(placeholder)
     story.append(Spacer(1, 8))
 
     layout_data = [
@@ -1134,8 +1282,17 @@ def section_disclaimer(story, p, brand_footer):
 # MAIN BUILD FUNCTION
 # ═══════════════════════════════════════════════════
 
-def build_dossier(output_path: str, tier: str = "premium", white_label: str | None = None):
-    """Generate tiered Solar ATAP dossier."""
+def build_dossier(output_path: str, tier: str = "premium",
+                  white_label: str | None = None,
+                  lat: float | None = None, lng: float | None = None,
+                  api_key: str | None = None):
+    """Generate tiered Solar ATAP dossier.
+
+    Args:
+        lat/lng: Facility coordinates for satellite imagery (Premium only).
+        api_key: Google Static Maps API key. If provided with lat/lng,
+                 fetches real satellite image and generates panel overlay.
+    """
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -1153,6 +1310,24 @@ def build_dossier(output_path: str, tier: str = "premium", white_label: str | No
         if white_label
         else "PowerRoof.my — Solar Acquisition Intelligence"
     )
+
+    # ─── Fetch satellite imagery if coordinates + API key provided ───
+    sat_image_path = None
+    overlay_image_path = None
+    temp_files = []
+
+    if tier == "premium" and lat and lng and api_key and HAS_IMAGE_DEPS:
+        print(f"[INFO] Fetching satellite image for {lat}, {lng}...")
+        sat_img = fetch_satellite_image(lat, lng, api_key)
+        if sat_img:
+            sat_image_path = save_image_for_pdf(sat_img, "satellite")
+            temp_files.append(sat_image_path)
+            print("[INFO] Generating panel overlay...")
+            overlay_img = generate_roof_overlay(sat_img, p["size_kwp"])
+            overlay_image_path = save_image_for_pdf(overlay_img, "overlay")
+            temp_files.append(overlay_image_path)
+    elif tier == "premium" and not api_key:
+        print("[INFO] No --api-key provided — using placeholder images for roof sections")
 
     # ═══ COVER (all tiers) ═══
     section_cover(story, p, brand_name, brand_footer, tier)
@@ -1187,13 +1362,13 @@ def build_dossier(output_path: str, tier: str = "premium", white_label: str | No
         section_disclaimer(story, p, brand_footer)
 
     elif tier == "premium":
-        # Premium: full 14-page dossier
+        # Premium: full 14-page dossier with satellite imagery
         story.append(PageBreak())
         section_facility_intelligence(story, p)
         story.append(PageBreak())
-        section_roof_intelligence(story, p)
+        section_roof_intelligence(story, p, sat_image_path=sat_image_path)
         story.append(PageBreak())
-        section_layout_concept(story, p)
+        section_layout_concept(story, p, overlay_image_path=overlay_image_path)
         story.append(PageBreak())
         section_eligibility(story, p)
         story.append(PageBreak())
@@ -1225,19 +1400,47 @@ if __name__ == "__main__":
 
     tier = "premium"
     white_label = None
+    lat = None
+    lng = None
+    api_key = None
 
-    if "--tier" in sys.argv:
-        idx = sys.argv.index("--tier")
-        if idx + 1 < len(sys.argv):
-            tier = sys.argv[idx + 1].lower()
-            if tier not in ("basic", "pro", "premium"):
-                print(f"Invalid tier: {tier}. Use basic, pro, or premium.")
-                sys.exit(1)
+    def get_arg(flag):
+        if flag in sys.argv:
+            idx = sys.argv.index(flag)
+            if idx + 1 < len(sys.argv):
+                return sys.argv[idx + 1]
+        return None
 
-    if "--white-label" in sys.argv:
-        idx = sys.argv.index("--white-label")
-        if idx + 1 < len(sys.argv):
-            white_label = sys.argv[idx + 1]
+    tier = (get_arg("--tier") or "premium").lower()
+    if tier not in ("basic", "pro", "premium"):
+        print(f"Invalid tier: {tier}. Use basic, pro, or premium.")
+        sys.exit(1)
+
+    white_label = get_arg("--white-label")
+
+    # Satellite imagery flags (Premium only)
+    lat_str = get_arg("--lat")
+    lng_str = get_arg("--lng")
+    api_key = get_arg("--api-key") or os.environ.get("GOOGLE_MAPS_API_KEY")
+
+    if lat_str and lng_str:
+        try:
+            lat = float(lat_str)
+            lng = float(lng_str)
+        except ValueError:
+            print(f"[WARN] Invalid lat/lng: {lat_str}, {lng_str} — skipping satellite image")
+
+    if api_key and not lat:
+        print("[INFO] --api-key provided but no --lat/--lng — satellite image skipped")
+    if lat and not api_key:
+        print("[INFO] --lat/--lng provided but no --api-key — satellite image skipped")
+        print("       Set GOOGLE_MAPS_API_KEY env var or pass --api-key YOUR_KEY")
 
     output = os.path.join(project_root, "reports", f"dossier-{tier}.pdf")
-    build_dossier(output, tier=tier, white_label=white_label)
+    build_dossier(output, tier=tier, white_label=white_label,
+                  lat=lat, lng=lng, api_key=api_key)
+
+    print(f"\nUsage examples:")
+    print(f"  python {sys.argv[0]} --tier premium --white-label \"Voltek Energy\"")
+    print(f"  python {sys.argv[0]} --tier premium --lat 3.0658 --lng 101.5183 --api-key YOUR_KEY")
+    print(f"  GOOGLE_MAPS_API_KEY=xxx python {sys.argv[0]} --tier premium --lat 3.0658 --lng 101.5183")
