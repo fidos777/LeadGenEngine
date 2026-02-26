@@ -1017,94 +1017,236 @@
       </div>
     </div>
 
-    <!-- Product mockup panel — mirrors demo Command Overview -->
-    <div class="hero-visual reveal">
-      <div class="panel-chrome">
-        <div class="chrome-dot"></div>
-        <div class="chrome-dot"></div>
-        <div class="chrome-dot"></div>
-        <div class="chrome-url">app.powerroof.my/command</div>
+    <!-- Animated Roof Scanner Hero Visual -->
+    <div class="hero-visual reveal" id="scanner-visual" style="min-height:460px;position:relative;overflow:hidden">
+      <style>
+        /* Scanner-specific animations */
+        @keyframes scan-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(800px)}}
+        @keyframes dot-appear{0%{transform:scale(0);opacity:0}60%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:1}}
+        @keyframes badge-pop{0%{transform:scale(0) translateY(4px);opacity:0}70%{transform:scale(1.15) translateY(-2px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+        @keyframes ring-pulse{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.5);opacity:0}}
+        @keyframes card-enter{0%{transform:translateY(20px) scale(.95);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+        @keyframes zone-glow{0%{opacity:.03}50%{opacity:.08}100%{opacity:.03}}
+        @keyframes status-slide{0%{transform:translateX(-8px);opacity:0}100%{transform:translateX(0);opacity:1}}
+        @keyframes line-draw{0%{stroke-dashoffset:200}100%{stroke-dashoffset:0}}
+        @keyframes counter-blink{0%,100%{opacity:1}50%{opacity:.4}}
+        .scanner-phase{position:absolute;inset:0;transition:opacity .6s ease,transform .6s ease}
+        .scanner-phase.hidden{opacity:0;pointer-events:none;transform:scale(1.02)}
+        .factory-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:#F59E0B;opacity:0;z-index:5}
+        .factory-dot.discovered{animation:dot-appear .4s ease forwards}
+        .factory-dot .ring{position:absolute;inset:-4px;border:1.5px solid #F59E0B;border-radius:50%;animation:ring-pulse 1.5s ease-out infinite}
+        .score-badge{position:absolute;top:-22px;left:50%;transform:translateX(-50%) scale(0);font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;opacity:0;z-index:6}
+        .score-badge.visible{animation:badge-pop .35s ease forwards}
+        .zone-label{position:absolute;font-size:10px;color:rgba(255,255,255,.25);font-weight:500;letter-spacing:.5px;z-index:2}
+        .scan-beam{position:absolute;top:0;bottom:0;width:3px;background:linear-gradient(180deg,transparent,#F59E0B,transparent);z-index:10;opacity:0;box-shadow:0 0 20px 8px rgba(245,158,11,.15),0 0 60px 20px rgba(245,158,11,.06)}
+        .scan-beam.active{opacity:1;animation:scan-sweep 2.5s ease-in-out forwards}
+        /* Intel card */
+        .intel-card{background:var(--bg-card);border:1px solid var(--border-2);border-radius:14px;padding:0;max-width:400px;margin:0 auto;overflow:hidden;opacity:0;transform:translateY(20px) scale(.95)}
+        .intel-card.visible{animation:card-enter .5s ease forwards}
+        .intel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .intel-body{padding:20px}
+        .intel-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+        .intel-row:last-child{border-bottom:none}
+        .intel-row .k{color:var(--text-tertiary)}
+        .intel-row .v{color:var(--text-primary);font-weight:500;text-align:right}
+        .intel-status{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;opacity:0}
+        .intel-status.visible{animation:status-slide .4s ease forwards}
+        /* Map grid lines */
+        .map-grid{position:absolute;inset:0;z-index:1;opacity:.4}
+        /* Counter bar */
+        .counter-bar{position:absolute;bottom:0;left:0;right:0;padding:10px 20px;background:rgba(9,9,11,.9);border-top:1px solid var(--border);display:flex;gap:24px;font-size:11px;z-index:20}
+        .counter-item{display:flex;align-items:center;gap:6px;color:var(--text-tertiary)}
+        .counter-item .num{color:#F59E0B;font-weight:700;font-family:var(--mono)}
+      </style>
+
+      <!-- PHASE 1: Map Scanner -->
+      <div class="scanner-phase" id="phase-map">
+        <!-- SVG Map grid background -->
+        <svg class="map-grid" viewBox="0 0 800 460" preserveAspectRatio="none">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,.04)" stroke-width=".5"/>
+            </pattern>
+          </defs>
+          <rect width="800" height="460" fill="url(#grid)"/>
+          <!-- Selangor outline (simplified) -->
+          <path d="M200,120 L320,80 L480,90 L580,140 L620,220 L600,320 L500,380 L350,390 L220,340 L180,260 Z"
+            fill="none" stroke="rgba(245,158,11,.12)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <!-- Zone areas (subtle fills) -->
+          <ellipse cx="310" cy="180" rx="70" ry="50" fill="rgba(245,158,11,.03)" style="animation:zone-glow 3s ease infinite"/>
+          <ellipse cx="440" cy="220" rx="60" ry="45" fill="rgba(6,182,212,.03)" style="animation:zone-glow 3s ease infinite .5s"/>
+          <ellipse cx="380" cy="310" rx="55" ry="40" fill="rgba(139,92,246,.03)" style="animation:zone-glow 3s ease infinite 1s"/>
+          <ellipse cx="520" cy="170" rx="50" ry="40" fill="rgba(34,197,94,.03)" style="animation:zone-glow 3s ease infinite 1.5s"/>
+          <!-- Connection lines (draw later) -->
+          <line id="conn1" x1="310" y1="180" x2="440" y2="220" stroke="rgba(245,158,11,.15)" stroke-width=".5" stroke-dasharray="200" stroke-dashoffset="200"/>
+          <line id="conn2" x1="440" y1="220" x2="380" y2="310" stroke="rgba(245,158,11,.15)" stroke-width=".5" stroke-dasharray="200" stroke-dashoffset="200"/>
+          <line id="conn3" x1="310" y1="180" x2="520" y2="170" stroke="rgba(245,158,11,.15)" stroke-width=".5" stroke-dasharray="200" stroke-dashoffset="200"/>
+        </svg>
+
+        <!-- Zone labels -->
+        <div class="zone-label" style="top:25%;left:30%">SHAH ALAM</div>
+        <div class="zone-label" style="top:42%;left:48%">KLANG</div>
+        <div class="zone-label" style="top:62%;left:38%">PJ</div>
+        <div class="zone-label" style="top:30%;left:58%">SUBANG</div>
+        <div class="zone-label" style="top:52%;left:22%">PORT KLANG</div>
+
+        <!-- Scan beam -->
+        <div class="scan-beam" id="scan-beam"></div>
+
+        <!-- Factory dots — positioned at zone centers -->
+        <div class="factory-dot" id="dot1" style="top:38%;left:35%">
+          <div class="ring"></div>
+          <div class="score-badge" style="background:#166534;color:#fff">82 · Mega Plastics</div>
+        </div>
+        <div class="factory-dot" id="dot2" style="top:47%;left:52%">
+          <div class="ring"></div>
+          <div class="score-badge" style="background:#166534;color:#fff">78 · Klang Metal</div>
+        </div>
+        <div class="factory-dot" id="dot3" style="top:65%;left:42%">
+          <div class="ring"></div>
+          <div class="score-badge" style="background:#166534;color:#fff">75 · PJ Packaging</div>
+        </div>
+        <div class="factory-dot" id="dot4" style="top:35%;left:62%">
+          <div class="ring"></div>
+          <div class="score-badge" style="background:#92400E;color:#fff">68 · Subang Food</div>
+        </div>
+        <div class="factory-dot" id="dot5" style="top:55%;left:28%">
+          <div class="ring"></div>
+          <div class="score-badge" style="background:#166534;color:#fff">71 · Port Klang Mfg</div>
+        </div>
+
+        <!-- Scanning status bar -->
+        <div class="counter-bar" id="counter-bar" style="opacity:0">
+          <div class="counter-item">SCANNING <span class="num" id="cnt-zones">0</span>/15 zones</div>
+          <div class="counter-item">DISCOVERED <span class="num" id="cnt-factories">0</span> factories</div>
+          <div class="counter-item">ATAP ELIGIBLE <span class="num" id="cnt-eligible">0</span></div>
+          <div class="counter-item" style="margin-left:auto;color:var(--accent)">
+            <span style="display:inline-block;width:6px;height:6px;background:#F59E0B;border-radius:50%;animation:counter-blink 1s infinite"></span>
+            LIVE
+          </div>
+        </div>
       </div>
-      <div class="panel-body" style="display:flex;flex-direction:column;gap:0;padding:0;">
-        <!-- Nav tabs -->
-        <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 16px;">
-          <div style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent)">Overview</div>
-          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Discovery</div>
-          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Pipeline</div>
-          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Lead Detail</div>
-          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Caller</div>
-          <div style="padding:10px 14px;font-size:11px;color:var(--text-tertiary)">Performance</div>
-        </div>
-        <!-- KPI row -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;">
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
-            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Pipeline (kWp)</div>
-            <div style="font-size:24px;font-weight:700;color:var(--accent);letter-spacing:-0.5px">2,840</div>
-            <div style="font-size:10px;color:#22C55E;margin-top:4px">↑ 640 kWp this month</div>
+
+      <!-- PHASE 2: Intelligence Card (zoomed in) -->
+      <div class="scanner-phase hidden" id="phase-card" style="display:flex;align-items:center;justify-content:center;padding:24px">
+        <div class="intel-card" id="intel-card">
+          <div class="intel-header">
+            <div>
+              <div style="font-size:16px;font-weight:650;color:var(--text-primary)">Mega Plastics Sdn Bhd</div>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Shah Alam · Plastics Manufacturing</div>
+            </div>
+            <div style="background:#166534;color:#fff;padding:4px 10px;border-radius:8px;font-size:18px;font-weight:700">82</div>
           </div>
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
-            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Revenue In Play</div>
-            <div style="font-size:24px;font-weight:700;color:#22C55E;letter-spacing:-0.5px">RM 284K</div>
-            <div style="font-size:10px;color:#22C55E;margin-top:4px">↑ 3 new prospects</div>
-          </div>
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
-            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Factories Mapped</div>
-            <div style="font-size:24px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px">161</div>
-            <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px">6 of 15 zones active</div>
-          </div>
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;">
-            <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">ATAP Eligible</div>
-            <div style="font-size:24px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px">94</div>
-            <div style="font-size:10px;color:var(--text-tertiary);margin-top:4px">58% pass rate</div>
+          <div class="intel-body">
+            <div class="intel-row"><span class="k">Optimal System Size</span><span class="v">280 kWp</span></div>
+            <div class="intel-row"><span class="k">Annual Savings</span><span class="v" style="color:#22C55E">RM 97,400</span></div>
+            <div class="intel-row"><span class="k">Payback Period</span><span class="v">5.8 years</span></div>
+            <div class="intel-row"><span class="k">Self-Consumption</span><span class="v">82%</span></div>
+            <div class="intel-row"><span class="k">Decision Maker</span><span class="v">En. Ahmad Razak, Director</span></div>
+            <div class="intel-row"><span class="k">ATAP Compliance</span><span class="v" style="color:#22C55E">✓ Eligible</span></div>
+            <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+              <div class="intel-status" id="intel-status" style="background:rgba(34,197,94,.12);color:#22C55E">
+                <span style="width:6px;height:6px;background:#22C55E;border-radius:50%;display:inline-block"></span>
+                Survey Ready — Site visit booked
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Priority Deals table -->
-        <div style="padding:0 16px 4px;">
-          <div style="font-size:11px;font-weight:600;color:var(--text-primary);margin-bottom:8px">Priority Deals — This Week</div>
-        </div>
-        <table class="panel-table" style="margin:0;">
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>kWp</th>
-              <th>Score</th>
-              <th>Status</th>
-              <th>Next Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span style="color:var(--text-primary);font-weight:500">Mega Plastics Sdn Bhd</span><br><span style="font-size:10px;color:var(--text-tertiary)">Shah Alam · Plastics</span></td>
-              <td>280</td>
-              <td><span style="background:#166534;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">82</span></td>
-              <td><span class="table-status active">Survey Ready</span></td>
-              <td style="color:var(--accent);font-size:11px">Book site visit</td>
-            </tr>
-            <tr>
-              <td><span style="color:var(--text-primary);font-weight:500">Klang Metal Works</span><br><span style="font-size:10px;color:var(--text-tertiary)">Klang · Metal Fab</span></td>
-              <td>350</td>
-              <td><span style="background:#166534;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">78</span></td>
-              <td><span class="table-status warming">Proposal Sent</span></td>
-              <td style="color:var(--text-tertiary);font-size:11px">Follow up Tue</td>
-            </tr>
-            <tr>
-              <td><span style="color:var(--text-primary);font-weight:500">PJ Packaging Bhd</span><br><span style="font-size:10px;color:var(--text-tertiary)">PJ · Packaging</span></td>
-              <td>220</td>
-              <td><span style="background:#166534;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">75</span></td>
-              <td><span class="table-status warming">Appointment Set</span></td>
-              <td style="color:var(--text-tertiary);font-size:11px">Site visit Mon</td>
-            </tr>
-            <tr>
-              <td><span style="color:var(--text-primary);font-weight:500">Subang Food Industries</span><br><span style="font-size:10px;color:var(--text-tertiary)">Subang · Food Mfg</span></td>
-              <td>300</td>
-              <td><span style="background:#92400E;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">68</span></td>
-              <td><span class="table-status scanning">Contacted</span></td>
-              <td style="color:var(--text-tertiary);font-size:11px">Await callback</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
+
+    <script>
+    // ─── Roof Scanner Animation Engine ───
+    (function(){
+      const CYCLE=10000; // 10s total cycle
+      let running=true;
+
+      function runCycle(){
+        if(!running) return;
+        const dots=document.querySelectorAll('.factory-dot');
+        const badges=document.querySelectorAll('.score-badge');
+        const beam=document.getElementById('scan-beam');
+        const bar=document.getElementById('counter-bar');
+        const phaseMap=document.getElementById('phase-map');
+        const phaseCard=document.getElementById('phase-card');
+        const card=document.getElementById('intel-card');
+        const status=document.getElementById('intel-status');
+        const conns=[document.getElementById('conn1'),document.getElementById('conn2'),document.getElementById('conn3')];
+
+        // Reset everything
+        dots.forEach(d=>{d.classList.remove('discovered');d.style.background='#F59E0B'});
+        badges.forEach(b=>b.classList.remove('visible'));
+        beam.classList.remove('active');
+        bar.style.opacity='0';
+        phaseMap.classList.remove('hidden');
+        phaseCard.classList.add('hidden');
+        card.classList.remove('visible');
+        status.classList.remove('visible');
+        conns.forEach(c=>{c.style.strokeDashoffset='200'});
+        document.getElementById('cnt-zones').textContent='0';
+        document.getElementById('cnt-factories').textContent='0';
+        document.getElementById('cnt-eligible').textContent='0';
+
+        // T=0.3s: Show counter bar, start scan beam
+        setTimeout(()=>{
+          bar.style.opacity='1';
+          bar.style.transition='opacity .3s';
+          beam.classList.add('active');
+        },300);
+
+        // T=0.8s–2.5s: Discover dots sequentially
+        const dotOrder=[0,3,1,4,2];
+        const factories=[0,1,2,3,4];
+        dotOrder.forEach((idx,i)=>{
+          setTimeout(()=>{
+            dots[idx].classList.add('discovered');
+            // Count up
+            document.getElementById('cnt-zones').textContent=Math.min(15,3+i*3);
+            document.getElementById('cnt-factories').textContent=(i+1)*32+1;
+            document.getElementById('cnt-eligible').textContent=Math.round((i+1)*19);
+          },800+i*400);
+        });
+
+        // T=2.8s–4.2s: Score badges appear
+        dotOrder.forEach((idx,i)=>{
+          setTimeout(()=>{
+            badges[idx].classList.add('visible');
+          },2800+i*300);
+        });
+
+        // T=3.5s: Draw connection lines
+        setTimeout(()=>{
+          conns.forEach(c=>{c.style.transition='stroke-dashoffset 1s ease';c.style.strokeDashoffset='0'});
+        },3500);
+
+        // T=4.5s: Final counter values
+        setTimeout(()=>{
+          document.getElementById('cnt-zones').textContent='15';
+          document.getElementById('cnt-factories').textContent='161';
+          document.getElementById('cnt-eligible').textContent='94';
+        },4500);
+
+        // T=5.5s: Transition to intelligence card
+        setTimeout(()=>{
+          phaseMap.classList.add('hidden');
+          setTimeout(()=>{
+            phaseCard.classList.remove('hidden');
+            setTimeout(()=>card.classList.add('visible'),100);
+            setTimeout(()=>status.classList.add('visible'),600);
+          },400);
+        },5500);
+
+        // T=9.5s: Start next cycle
+        setTimeout(()=>runCycle(),CYCLE);
+      }
+
+      // Start when visible
+      const obs=new IntersectionObserver(entries=>{
+        if(entries[0].isIntersecting){runCycle();obs.disconnect()}
+      },{threshold:.3});
+      obs.observe(document.getElementById('scanner-visual'));
+    })();
+    </script>
   </div>
 </section>
 
