@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 
   const { data: companies } = await supabase
     .from("companies")
-    .select("id, name, sector, zone")
+    .select("id, name, sector, zone, estimated_md_kw, tenant_structure, operating_hours, estimated_roof_sqft, tnb_bill_band, ownership_status, phone")
     .in("id", companyIds.length > 0 ? companyIds : ["00000000-0000-0000-0000-000000000000"]);
 
   const companyMap = new Map((companies || []).map((c) => [c.id, c]));
@@ -113,6 +113,12 @@ export async function GET(req: NextRequest) {
         ? calculateSolarScore({
             sector: company?.sector ?? null,
             zone: company?.zone ?? null,
+            estimated_md_kw: company?.estimated_md_kw ?? null,
+            tenant_structure: company?.tenant_structure ?? null,
+            operating_hours: company?.operating_hours ?? null,
+            estimated_roof_sqft: company?.estimated_roof_sqft ?? null,
+            tnb_bill_band: company?.tnb_bill_band ?? null,
+            ownership_status: company?.ownership_status ?? null,
           })
         : null;
 

@@ -39,3 +39,42 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env.local
+
+# Data files — contains scraped company data, not for public repo
+*.csv
+*.tar.gz
+
+# Screenshots — dashboard screenshots with credentials visible
+*.png
+!public/**/*.png
+
+# Strategy documents — confidential
+*.docx
+
+# Claude workspace
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+requirements.txt
+
+# Reports (generated PDFs — regenerate with scripts/)
+reports/*.pdf
+
+# Legacy HTML drafts (root-level copies only)
+/prospek-v2.html
+/voltek-demo.html
+/demo-seed.sql
+
+# Apify notes
+apify_datasets.md
+discovery_pipeline.py
+
+# Resend
+resend*.png
+
+# Supabase local temp (contains project ref and connection strings)
+supabase/.temp/

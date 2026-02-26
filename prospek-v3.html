@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prospek — Solar Acquisition Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Core palette — refined, not loud */
+      --bg:        #09090B;
+      --bg-subtle: #0F0F12;
+      --bg-card:   #141418;
+      --bg-hover:  #1A1A20;
+      --border:    rgba(255,255,255,.06);
+      --border-2:  rgba(255,255,255,.1);
+
+      --text-primary:   #FAFAFA;
+      --text-secondary: #A1A1AA;
+      --text-tertiary:  #71717A;
+
+      /* Accent — warm amber, pulled back to feel premium */
+      --accent:      #F59E0B;
+      --accent-soft: rgba(245,158,11,.12);
+      --accent-glow: rgba(245,158,11,.06);
+
+      /* Segment colors */
+      --seg-1: #F59E0B;
+      --seg-2: #06B6D4;
+      --seg-3: #8B5CF6;
+      --seg-4: #22C55E;
+
+      /* Typography */
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+
+      /* Spacing scale */
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+      --space-2xl: 48px;
+      --space-3xl: 64px;
+      --space-4xl: 96px;
+      --space-5xl: 128px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-secondary);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── UTILITIES ─── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-xl);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 6px 14px;
+      border: 1px solid var(--accent-soft);
+      border-radius: 100px;
+      background: var(--accent-glow);
+    }
+    .badge .dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2.5s infinite;
+    }
+
+    /* ─── GRADIENT MESH BG ─── */
+    .mesh-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .mesh-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: .35;
+    }
+    .mesh-orb.orb-1 {
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(245,158,11,.18), transparent 70%);
+      top: -200px; right: -200px;
+      animation: float-slow 20s ease-in-out infinite;
+    }
+    .mesh-orb.orb-2 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(139,92,246,.12), transparent 70%);
+      bottom: 20%; left: -100px;
+      animation: float-slow 25s ease-in-out infinite reverse;
+    }
+    .mesh-orb.orb-3 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(6,182,212,.1), transparent 70%);
+      top: 50%; right: 10%;
+      animation: float-slow 22s ease-in-out infinite;
+    }
+
+    @keyframes float-slow {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(30px, -20px); }
+      66% { transform: translate(-20px, 15px); }
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 0 var(--space-xl);
+      transition: all .3s ease;
+    }
+    nav.scrolled {
+      background: rgba(9,9,11,.85);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+      font-weight: 600; font-size: 17px;
+      letter-spacing: -.01em;
+      color: var(--text-primary);
+    }
+    .nav-logo svg { flex-shrink: 0; }
+    .nav-logo span { color: var(--accent); }
+
+    .nav-links {
+      display: flex; gap: var(--space-xl); list-style: none;
+    }
+    .nav-links a {
+      font-size: 14px; font-weight: 450;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .nav-cta {
+      font-size: 14px; font-weight: 500;
+      color: var(--bg);
+      background: var(--text-primary);
+      padding: 8px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .nav-cta:hover {
+      background: #E4E4E7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding: var(--space-5xl) 0 var(--space-4xl);
+    }
+    .hero .container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-3xl);
+      text-align: center;
+      align-items: center;
+    }
+    .hero-content {
+      display: flex; flex-direction: column;
+      align-items: center;
+    }
+
+    .hero h1 {
+      font-size: clamp(48px, 7vw, 80px);
+      font-weight: 650;
+      letter-spacing: -.035em;
+      line-height: 1.05;
+      color: var(--text-primary);
+      margin-top: var(--space-lg);
+      max-width: 800px;
+    }
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, var(--accent), #FBBF24, var(--accent));
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradient-shift 6s ease infinite;
+    }
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .hero-desc {
+      margin-top: var(--space-lg);
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      max-width: 580px;
+    }
+
+    .hero-ctas {
+      display: flex; gap: 12px;
+      margin-top: var(--space-2xl);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 550;
+      color: var(--bg);
+      background: var(--text-primary);
+      padding: 12px 28px;
+      border-radius: 10px;
+      text-decoration: none;
+      border: none; cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-primary:hover {
+      background: #E4E4E7;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 450;
+      color: var(--text-secondary);
+      background: transparent;
+      padding: 12px 28px;
+      border-radius: 10px;
+      border: 1px solid var(--border-2);
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .btn-ghost:hover {
+      color: var(--text-primary);
+      border-color: rgba(255,255,255,.2);
+      background: rgba(255,255,255,.04);
+    }
+
+    /* Hero visual — product mockup panel */
+    .hero-visual {
+      margin-top: var(--space-3xl);
+      position: relative;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.03),
+        0 20px 60px -12px rgba(0,0,0,.5),
+        0 0 120px rgba(245,158,11,.04);
+    }
+    .panel-chrome {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+    .chrome-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--border-2);
+    }
+    .chrome-url {
+      flex: 1; text-align: center;
+      font-family: var(--mono); font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .panel-body {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 400px;
+    }
+    .panel-sidebar {
+      border-right: 1px solid var(--border);
+      padding: var(--space-lg);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 450;
+      color: var(--text-tertiary);
+      transition: all .15s;
+    }
+    .sidebar-item.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .sidebar-item svg {
+      width: 16px; height: 16px;
+      opacity: .6;
+    }
+    .sidebar-item.active svg { opacity: 1; }
+
+    .panel-content {
+      padding: var(--space-lg);
+      display: flex; flex-direction: column; gap: var(--space-md);
+    }
+    .panel-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color .2s;
+    }
+    .stat-card:hover { border-color: var(--border-2); }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+      color: var(--text-primary);
+    }
+    .stat-change {
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .stat-change.up { color: var(--seg-4); }
+    .stat-change.down { color: #EF4444; }
+
+    /* Mini table inside panel */
+    .panel-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+    .panel-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-tertiary);
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .panel-table tr:hover td { background: rgba(255,255,255,.02); }
+    .table-status {
+      display: inline-flex;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .table-status.active { background: rgba(34,197,94,.12); color: #22C55E; }
+    .table-status.warming { background: rgba(6,182,212,.12); color: #06B6D4; }
+    .table-status.scanning { background: rgba(139,92,246,.12); color: #8B5CF6; }
+    .table-status.live { background: rgba(245,158,11,.12); color: #F59E0B; }
+
+    .seg-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    /* ─── LOGOS / TRUST BAR ─── */
+    .trust-bar {
+      position: relative; z-index: 1;
+      padding: var(--space-4xl) 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .trust-label {
+      font-size: 13px;
+      font-weight: 450;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: var(--space-2xl);
+    }
+    .trust-logos {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-3xl);
+      flex-wrap: wrap;
+      opacity: .4;
+    }
+    .trust-logo-text {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -.02em;
+      color: var(--text-primary);
+    }
+
+    /* ─── SECTIONS SHARED ─── */
+    section {
+      position: relative;
+      z-index: 1;
+    }
+    .section-header {
+      max-width: 640px;
+    }
+    .section-header.center {
+      margin: 0 auto;
+      text-align: center;
+    }
+    .section-title {
+      font-size: clamp(36px, 4vw, 52px);
+      font-weight: 650;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      color: var(--text-primary);
+      margin-top: var(--space-md);
+    }
+    .section-desc {
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-top: var(--space-md);
+    }
+
+    /* ─── SEGMENTS ─── */
+    .segments {
+      padding: var(--space-5xl) 0;
+    }
+    .seg-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      margin-top: var(--space-3xl);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--border);
+    }
+    .seg-card {
+      background: var(--bg-card);
+      padding: var(--space-2xl) var(--space-lg);
+      position: relative;
+      transition: background .25s;
+    }
+    .seg-card:hover { background: var(--bg-hover); }
+
+    .seg-accent-bar {
+      width: 32px; height: 3px;
+      border-radius: 2px;
+      margin-bottom: var(--space-lg);
+    }
+    .seg-card:nth-child(1) .seg-accent-bar { background: var(--seg-1); }
+    .seg-card:nth-child(2) .seg-accent-bar { background: var(--seg-2); }
+    .seg-card:nth-child(3) .seg-accent-bar { background: var(--seg-3); }
+    .seg-card:nth-child(4) .seg-accent-bar { background: var(--seg-4); }
+
+    .seg-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-sm);
+    }
+    .seg-card:nth-child(1) .seg-label { color: var(--seg-1); }
+    .seg-card:nth-child(2) .seg-label { color: var(--seg-2); }
+    .seg-card:nth-child(3) .seg-label { color: var(--seg-3); }
+    .seg-card:nth-child(4) .seg-label { color: var(--seg-4); }
+
+    .seg-name {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -.02em;
+      color: var(--text-primary);
+      line-height: 1.2;
+      margin-bottom: var(--space-md);
+    }
+    .seg-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-tertiary);
+      margin-bottom: var(--space-lg);
+    }
+    .seg-specs {
+      display: flex; flex-direction: column;
+      gap: 0;
+    }
+    .seg-spec {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 10px 0;
+      border-top: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+    .seg-spec .key { color: var(--text-tertiary); }
+    .seg-spec .val { color: var(--text-secondary); font-weight: 500; text-align: right; }
+
+    /* ─── METHOD ─── */
+    .method {
+      padding: var(--space-5xl) 0;
+      border-top: 1px solid var(--border);
+    }
+    .method-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-lg);
+      margin-top: var(--space-3xl);
+    }
+    .method-card {
+      position: relative;
+      padding: var(--space-2xl) var(--space-lg);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      transition: all .25s;
+    }
+    .method-card:hover {
+      border-color: var(--border-2);
+      background: var(--bg-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -12px rgba(0,0,0,.3);
+    }
+    .method-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: var(--space-lg);
+    }
+    .method-icon {
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      margin-bottom: var(--space-md);
+    }
+    .method-icon svg { width: 20px; height: 20px; color: var(--accent); }
+    .method-title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -.01em;
+      color: var(--text-primary);
+      margin-bottom: var(--space-sm);
+    }
+    .method-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-tertiary);
+    }
+
+    /* ─── SOCIAL PROOF ─── */
+    .proof {
+      padding: var(--space-5xl) 0;
+      border-top: 1px solid var(--border);
+    }
+    .proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+      margin-top: var(--space-3xl);
+    }
+    .proof-card {
+      padding: var(--space-2xl);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex; flex-direction: column;
+      transition: all .25s;
+    }
+    .proof-card:hover {
+      border-color: var(--border-2);
+      transform: translateY(-2px);
+    }
+    .proof-stars {
+      display: flex; gap: 2px;
+      margin-bottom: var(--space-md);
+      color: var(--accent);
+      font-size: 14px;
+    }
+    .proof-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+    .proof-attr {
+      margin-top: var(--space-lg);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--border);
+    }
+    .proof-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .proof-role {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* ─── MODEL ─── */
+    .model {
+      padding: var(--space-5xl) 0;
+      border-top: 1px solid var(--border);
+    }
+    .model-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+      margin-top: var(--space-3xl);
+    }
+    .model-card {
+      position: relative;
+      padding: var(--space-2xl);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all .25s;
+    }
+    .model-card:hover {
+      border-color: var(--border-2);
+      transform: translateY(-2px);
+    }
+    .model-card.featured {
+      border-color: rgba(245,158,11,.2);
+      background: linear-gradient(180deg, rgba(245,158,11,.04) 0%, var(--bg-card) 100%);
+    }
+    .model-tag {
+      display: inline-flex;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-md);
+    }
+    .model-tag.billable {
+      background: rgba(245,158,11,.12);
+      color: var(--accent);
+    }
+    .model-tag.platform {
+      background: rgba(255,255,255,.06);
+      color: var(--text-tertiary);
+    }
+    .model-milestone {
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+      color: var(--text-primary);
+      margin-bottom: var(--space-sm);
+    }
+    .model-trigger {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-tertiary);
+      margin-bottom: var(--space-lg);
+    }
+    .model-verify {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-tertiary);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--border);
+    }
+    .model-verify strong {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .model-note {
+      margin-top: var(--space-2xl);
+      text-align: center;
+    }
+    .model-note-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: 12px 24px;
+      border-radius: 100px;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent-soft);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    /* ─── CTA / CONTACT ─── */
+    .cta-section {
+      padding: var(--space-5xl) 0;
+      border-top: 1px solid var(--border);
+    }
+    .cta-card {
+      position: relative;
+      padding: var(--space-4xl) var(--space-3xl);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      text-align: center;
+    }
+    .cta-card::before {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(245,158,11,.08), transparent 70%);
+      pointer-events: none;
+    }
+    .cta-card h2 {
+      position: relative;
+      font-size: clamp(36px, 4vw, 56px);
+      font-weight: 650;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      color: var(--text-primary);
+    }
+    .cta-card p {
+      position: relative;
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-top: var(--space-md);
+      max-width: 500px;
+      margin-left: auto; margin-right: auto;
+    }
+
+    .cta-form {
+      position: relative;
+      max-width: 640px;
+      margin: var(--space-2xl) auto 0;
+      display: flex; flex-direction: column;
+      gap: 12px;
+    }
+    .cta-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .cta-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 14px;
+      outline: none;
+      transition: all .2s;
+    }
+    .cta-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .cta-input::placeholder { color: var(--text-tertiary); }
+    select.cta-input { appearance: none; cursor: pointer; }
+    textarea.cta-input { resize: vertical; min-height: 100px; }
+    .cta-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--text-primary);
+      color: var(--bg);
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .cta-submit:hover {
+      background: #E4E4E7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: var(--space-2xl) 0;
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-logo {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      letter-spacing: -.01em;
+    }
+    .footer-logo span { color: var(--accent); }
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+    .footer-links {
+      display: flex; gap: var(--space-lg);
+    }
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    /* ─── SCROLL ANIMATIONS ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+    .reveal-d1 { transition-delay: .08s; }
+    .reveal-d2 { transition-delay: .16s; }
+    .reveal-d3 { transition-delay: .24s; }
+    .reveal-d4 { transition-delay: .32s; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1024px) {
+      .seg-grid { grid-template-columns: repeat(2, 1fr); }
+      .method-grid { grid-template-columns: repeat(2, 1fr); }
+      .panel-body { grid-template-columns: 1fr; }
+      .panel-sidebar { display: none; }
+    }
+    @media (max-width: 768px) {
+      :root {
+        --space-xl: 20px;
+      }
+      .hero h1 { font-size: 40px; }
+      .seg-grid { grid-template-columns: 1fr; }
+      .method-grid { grid-template-columns: 1fr; }
+      .proof-grid { grid-template-columns: 1fr; }
+      .model-cards { grid-template-columns: 1fr !important; }
+      .panel-row { grid-template-columns: repeat(2, 1fr); }
+      .hero-ctas { flex-direction: column; align-items: stretch; }
+      .cta-row { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; gap: var(--space-md); text-align: center; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mesh-bg">
+  <div class="mesh-orb orb-1"></div>
+  <div class="mesh-orb orb-2"></div>
+  <div class="mesh-orb orb-3"></div>
+</div>
+
+<!-- ─── NAV ─── -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="1" y="1" width="22" height="22" rx="4" stroke="#F59E0B" stroke-width="1.5"/>
+        <circle cx="12" cy="12" r="4" stroke="#F59E0B" stroke-width="1.5"/>
+        <circle cx="12" cy="12" r="1.5" fill="#F59E0B"/>
+        <line x1="12" y1="1" x2="12" y2="6" stroke="#F59E0B" stroke-width="1" opacity=".4"/>
+        <line x1="12" y1="18" x2="12" y2="23" stroke="#F59E0B" stroke-width="1" opacity=".4"/>
+        <line x1="1" y1="12" x2="6" y2="12" stroke="#F59E0B" stroke-width="1" opacity=".4"/>
+        <line x1="18" y1="12" x2="23" y2="12" stroke="#F59E0B" stroke-width="1" opacity=".4"/>
+      </svg>
+      Prosp<span>ek</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#segments">Segments</a></li>
+      <li><a href="#atap">ATAP</a></li>
+      <li><a href="#method">Method</a></li>
+      <li><a href="#model">Pricing</a></li>
+    </ul>
+    <a href="#contact" class="nav-cta">Start Pilot</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="badge"><span class="dot"></span> Solar ATAP–ready · Onboarding partners in Selangor</div>
+
+      <h1>Solar intelligence<br>for <span class="gradient-text">every roof</span> in Malaysia</h1>
+
+      <p class="hero-desc">ATAP-screened prospects. Decision-maker identified. Site visit booked with a pre-survey energy report in hand. From 80,000 sqft factories to premium bungalows — you pay per outcome, not per month.</p>
+
+      <div class="hero-ctas">
+        <a href="#contact" class="btn-primary">Start a 3-month pilot <span>→</span></a>
+        <a href="#method" class="btn-ghost">See how it works</a>
+      </div>
+    </div>
+
+    <!-- Product mockup panel -->
+    <div class="hero-visual reveal">
+      <div class="panel-chrome">
+        <div class="chrome-dot"></div>
+        <div class="chrome-dot"></div>
+        <div class="chrome-dot"></div>
+        <div class="chrome-url">app.prospek.my/control</div>
+      </div>
+      <div class="panel-body">
+        <div class="panel-sidebar">
+          <div class="sidebar-item active">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="2"/><line x1="1" y1="5.5" x2="15" y2="5.5"/></svg>
+            Control Panel
+          </div>
+          <div class="sidebar-item">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2"/></svg>
+            Discovery
+          </div>
+          <div class="sidebar-item">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+            Pipeline
+          </div>
+          <div class="sidebar-item">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+            Enrichment
+          </div>
+          <div class="sidebar-item">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="4" height="8" rx="1"/><rect x="10" y="2" width="4" height="12" rx="1"/></svg>
+            Reports
+          </div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-row">
+            <div class="stat-card">
+              <div class="stat-label">Properties Mapped</div>
+              <div class="stat-value">1,247</div>
+              <div class="stat-change up">+83 this week</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Qualified Leads</div>
+              <div class="stat-value">227</div>
+              <div class="stat-change up">18.2% conversion</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Appointments</div>
+              <div class="stat-value">28</div>
+              <div class="stat-change up">+12 vs last month</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Proposals Sent</div>
+              <div class="stat-value">5</div>
+              <div class="stat-change up">35.7% close rate</div>
+            </div>
+          </div>
+          <table class="panel-table">
+            <thead>
+              <tr>
+                <th>Segment</th>
+                <th>Prospects</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="seg-dot" style="background:var(--seg-1)"></span>Factories & Manufacturers</td>
+                <td>312</td>
+                <td><span class="table-status active">Active</span></td>
+              </tr>
+              <tr>
+                <td><span class="seg-dot" style="background:var(--seg-2)"></span>Warehouses & Logistics</td>
+                <td>187</td>
+                <td><span class="table-status warming">Warming</span></td>
+              </tr>
+              <tr>
+                <td><span class="seg-dot" style="background:var(--seg-3)"></span>Commercial Buildings</td>
+                <td>94</td>
+                <td><span class="table-status scanning">Scanning</span></td>
+              </tr>
+              <tr>
+                <td><span class="seg-dot" style="background:var(--seg-4)"></span>Premium Residential</td>
+                <td>634</td>
+                <td><span class="table-status live">Live Ads</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TRUST BAR ─── -->
+<div class="trust-bar">
+  <div class="container">
+    <div class="trust-label">Targeting properties across</div>
+    <div class="trust-logos">
+      <span class="trust-logo-text">Shah Alam</span>
+      <span class="trust-logo-text">Klang</span>
+      <span class="trust-logo-text">Petaling Jaya</span>
+      <span class="trust-logo-text">Subang Jaya</span>
+      <span class="trust-logo-text">Damansara</span>
+      <span class="trust-logo-text">Puchong</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SEGMENTS ─── -->
+<section class="segments" id="segments">
+  <div class="container">
+    <div class="section-header center reveal">
+      <div class="badge">4 property segments</div>
+      <h2 class="section-title">Every significant roof<br>is an opportunity</h2>
+      <p class="section-desc">From a 40,000 sqft factory in Shah Alam to a bungalow in Damansara — the pitch is the same: a large roof, a high TNB bill, and an owner who hasn't been asked the right question yet.</p>
+    </div>
+
+    <div class="seg-grid">
+      <div class="seg-card reveal reveal-d1">
+        <div class="seg-accent-bar"></div>
+        <div class="seg-label">Segment 01</div>
+        <div class="seg-name">Factories &<br>Manufacturers</div>
+        <p class="seg-desc">Plastic injection, food processing, automotive parts, electronics assembly. High-consumption industrial operations in Selangor's manufacturing corridors.</p>
+        <div class="seg-specs">
+          <div class="seg-spec"><span class="key">Decision Maker</span><span class="val">Owner / GM / COO</span></div>
+          <div class="seg-spec"><span class="key">TNB Bill</span><span class="val">RM15k – 150k/mo</span></div>
+          <div class="seg-spec"><span class="key">Roof Size</span><span class="val">10k – 80k sqft</span></div>
+          <div class="seg-spec"><span class="key">Channel</span><span class="val">Outbound + Cold Call</span></div>
+          <div class="seg-spec"><span class="key">Source</span><span class="val">SSM + FMM + Tenants</span></div>
+        </div>
+      </div>
+
+      <div class="seg-card reveal reveal-d2">
+        <div class="seg-accent-bar"></div>
+        <div class="seg-label">Segment 02</div>
+        <div class="seg-name">Warehouses &<br>Logistics Hubs</div>
+        <p class="seg-desc">E-commerce fulfillment, cold chain, 3PL operators. Flat roofs ideal for large-capacity arrays with minimal structural complexity.</p>
+        <div class="seg-specs">
+          <div class="seg-spec"><span class="key">Decision Maker</span><span class="val">Ops Director</span></div>
+          <div class="seg-spec"><span class="key">TNB Bill</span><span class="val">RM8k – 60k/mo</span></div>
+          <div class="seg-spec"><span class="key">Roof Size</span><span class="val">20k – 200k sqft</span></div>
+          <div class="seg-spec"><span class="key">Channel</span><span class="val">Outbound + LinkedIn</span></div>
+          <div class="seg-spec"><span class="key">Source</span><span class="val">Maps + Park Lists</span></div>
+        </div>
+      </div>
+
+      <div class="seg-card reveal reveal-d3">
+        <div class="seg-accent-bar"></div>
+        <div class="seg-label">Segment 03</div>
+        <div class="seg-name">Commercial<br>Buildings</div>
+        <p class="seg-desc">Office towers, hypermarkets, hotel blocks, shopping complexes. High daytime cooling load makes solar ROI especially compelling.</p>
+        <div class="seg-specs">
+          <div class="seg-spec"><span class="key">Decision Maker</span><span class="val">Building Owner / CFO</span></div>
+          <div class="seg-spec"><span class="key">TNB Bill</span><span class="val">RM20k – 200k/mo</span></div>
+          <div class="seg-spec"><span class="key">Roof Size</span><span class="val">5k – 50k sqft</span></div>
+          <div class="seg-spec"><span class="key">Channel</span><span class="val">Outbound + Direct</span></div>
+          <div class="seg-spec"><span class="key">Source</span><span class="val">JPN + Strata Records</span></div>
+        </div>
+      </div>
+
+      <div class="seg-card reveal reveal-d4">
+        <div class="seg-accent-bar"></div>
+        <div class="seg-label">Segment 04</div>
+        <div class="seg-name">Premium<br>Residential</div>
+        <p class="seg-desc">Corner lots, semi-Ds, bungalows in Damansara, Bangsar, Subang, PJ. Household income above RM15k with TNB bills worth solving.</p>
+        <div class="seg-specs">
+          <div class="seg-spec"><span class="key">Decision Maker</span><span class="val">Homeowner</span></div>
+          <div class="seg-spec"><span class="key">TNB Bill</span><span class="val">RM500 – 3,000/mo</span></div>
+          <div class="seg-spec"><span class="key">Roof Size</span><span class="val">1.5k – 6k sqft</span></div>
+          <div class="seg-spec"><span class="key">Channel</span><span class="val">FB/IG Ads → Inbound</span></div>
+          <div class="seg-spec"><span class="key">Source</span><span class="val">Geo-targeted Funnels</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ATAP SECTION ─── -->
+<section class="method" id="atap" style="border-top: 1px solid var(--border);">
+  <div class="container">
+    <div class="section-header center reveal">
+      <div class="badge" style="color: #22C55E; border-color: rgba(34,197,94,.2); background: rgba(34,197,94,.06);">Solar ATAP Ready</div>
+      <h2 class="section-title">Built for the<br>new ATAP rules</h2>
+      <p class="section-desc">Effective January 2026, Solar ATAP replaces NEM 3.0 with SMP-based export credits and stricter eligibility. Every prospect we deliver is pre-screened against the new framework.</p>
+    </div>
+
+    <div class="method-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="method-card reveal reveal-d1">
+        <div class="method-num" style="color: #22C55E;">GATE</div>
+        <div class="method-title">Eligibility Screening</div>
+        <p class="method-desc">Multi-tenant exclusion, 1MW MD cap, ownership verification, operating hours analysis. We filter before you waste a site visit on an ineligible building.</p>
+      </div>
+
+      <div class="method-card reveal reveal-d2">
+        <div class="method-num" style="color: #06B6D4;">SCORE</div>
+        <div class="method-title">ATAP Fit Score</div>
+        <p class="method-desc">8-signal weighted model: sector, zone, bill band, roof size, MD sweet spot, operating hours, tenant structure, ownership. Prioritizes highest-close-probability leads.</p>
+      </div>
+
+      <div class="method-card reveal reveal-d3">
+        <div class="method-num" style="color: var(--accent);">REPORT</div>
+        <div class="method-title">Pre-Survey Report</div>
+        <p class="method-desc">Optimal kWp sizing at 75–85% of MD to minimize monthly forfeiture. SMP sensitivity analysis. CAPEX range at RM1,800–2,200/kWp. You arrive at the site visit with the numbers already done.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── METHOD ─── -->
+<section class="method" id="method">
+  <div class="container">
+    <div class="section-header center reveal">
+      <div class="badge">The method</div>
+      <h2 class="section-title">Systematic, not<br>spray and pray</h2>
+      <p class="section-desc">Industrial prospects get outbound. Residential gets inbound. Both flow through one qualified pipeline — ATAP-screened, scored, appointment-ready.</p>
+    </div>
+
+    <div class="method-grid">
+      <div class="method-card reveal reveal-d1">
+        <div class="method-num">01</div>
+        <div class="method-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="8"/><circle cx="10" cy="10" r="3"/><line x1="10" y1="2" x2="10" y2="5"/><line x1="10" y1="15" x2="10" y2="18"/><line x1="2" y1="10" x2="5" y2="10"/><line x1="15" y1="10" x2="18" y2="10"/></svg>
+        </div>
+        <div class="method-title">Discover the building</div>
+        <p class="method-desc">Zone-by-zone mapping across Selangor. SSM codes, FMM directory, park tenant lists for industrial. Geo-scored housing estates by income signal for residential.</p>
+      </div>
+
+      <div class="method-card reveal reveal-d2">
+        <div class="method-num">02</div>
+        <div class="method-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="6" r="4"/><path d="M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg>
+        </div>
+        <div class="method-title">Find the decision maker</div>
+        <p class="method-desc">Industrial: company director from SSM, verified by phone. Residential: homeowner reached via geo-targeted Meta ads with a bill-size qualifier form.</p>
+      </div>
+
+      <div class="method-card reveal reveal-d3">
+        <div class="method-num">03</div>
+        <div class="method-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4 4 8-8"/><rect x="1" y="1" width="18" height="18" rx="3"/></svg>
+        </div>
+        <div class="method-title">Qualify the prospect</div>
+        <p class="method-desc">Every lead scored against consumption signals, roof potential, and segment-specific criteria. Factory gets an energy snapshot. Residential gets a savings estimate.</p>
+      </div>
+
+      <div class="method-card reveal reveal-d4">
+        <div class="method-num">04</div>
+        <div class="method-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="16" height="14" rx="2"/><line x1="2" y1="7" x2="18" y2="7"/><line x1="6" y1="3" x2="6" y2="7"/><line x1="14" y1="3" x2="14" y2="7"/></svg>
+        </div>
+        <div class="method-title">Book the appointment</div>
+        <p class="method-desc">Multi-touch outreach in Bahasa Malaysia — WhatsApp, phone, email. Not until the decision-maker confirms a site visit does it count as a milestone.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PROOF ─── -->
+<section class="proof">
+  <div class="container">
+    <div class="section-header center reveal">
+      <div class="badge">Why Prospek</div>
+      <h2 class="section-title">Not a lead list.<br>An acquisition engine.</h2>
+    </div>
+
+    <div class="proof-grid">
+      <div class="proof-card reveal reveal-d1">
+        <div class="proof-stars">★ ★ ★ ★ ★</div>
+        <p class="proof-text">"Most lead gen gives you a spreadsheet and calls it qualified. Prospek gives you a seat at the table — right person, right building, ready for a proposal."</p>
+        <div class="proof-attr">
+          <div class="proof-name">Voltek Energy</div>
+          <div class="proof-role">Pilot Client — C&I Solar</div>
+        </div>
+      </div>
+
+      <div class="proof-card reveal reveal-d2">
+        <div class="proof-stars">★ ★ ★ ★ ★</div>
+        <p class="proof-text">"Residential was completely missing from our pipeline. Geo-targeted ads feeding qualified appointments — we didn't think it was possible at this cost per lead."</p>
+        <div class="proof-attr">
+          <div class="proof-name">Solar Installer</div>
+          <div class="proof-role">Residential Segment — Klang Valley</div>
+        </div>
+      </div>
+
+      <div class="proof-card reveal reveal-d3">
+        <div class="proof-stars">★ ★ ★ ★ ★</div>
+        <p class="proof-text">"The factory energy snapshot was the ice-breaker we never had. Arriving at a site visit with savings already calculated — that's how you close faster."</p>
+        <div class="proof-attr">
+          <div class="proof-name">C&I Sales Director</div>
+          <div class="proof-role">Selangor Zone Operations</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── MODEL ─── -->
+<section class="model" id="model">
+  <div class="container">
+    <div class="section-header center reveal">
+      <div class="badge">Revenue model</div>
+      <h2 class="section-title">Pay when we deliver</h2>
+      <p class="section-desc">Four milestones. Zero retainer. Your money moves only when ours does.</p>
+    </div>
+
+    <div class="model-cards" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="model-card reveal reveal-d1">
+        <div class="model-tag billable">Billable</div>
+        <div class="model-milestone">Appointment Confirmed</div>
+        <p class="model-trigger">Decision-maker agrees to site visit. Date and time locked with your team.</p>
+        <div class="model-verify"><strong>Verification:</strong> Calendar invite from verified PIC received by your sales team.</div>
+      </div>
+
+      <div class="model-card reveal reveal-d2">
+        <div class="model-tag billable">Billable</div>
+        <div class="model-milestone">ATAP Pre-Survey Report</div>
+        <p class="model-trigger">Energy snapshot delivered before the site visit: optimal kWp sizing, SMP sensitivity, CAPEX estimate, forfeiture risk analysis.</p>
+        <div class="model-verify"><strong>Verification:</strong> PDF report delivered to your sales team before the scheduled site visit date. C&I only.</div>
+      </div>
+
+      <div class="model-card featured reveal reveal-d3">
+        <div class="model-tag billable">Billable</div>
+        <div class="model-milestone">Site Survey Complete</div>
+        <p class="model-trigger">Your team finishes the physical site assessment and submits findings.</p>
+        <div class="model-verify"><strong>Verification:</strong> Survey form and photos submitted via the platform. Industrial and commercial segments.</div>
+      </div>
+
+      <div class="model-card reveal reveal-d4">
+        <div class="model-tag billable">Billable</div>
+        <div class="model-milestone">Contract Signed</div>
+        <p class="model-trigger">Client signs the installation agreement or letter of intent.</p>
+        <div class="model-verify"><strong>Verification:</strong> Signed copy shared with Prospek within 48 hours. All 4 segments.</div>
+      </div>
+    </div>
+
+    <div class="model-note reveal">
+      <div class="model-note-inner">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="7"/><path d="M8 5v3M8 11h.01"/></svg>
+        Discovery and enrichment run continuously in the background — platform cost, never billed to you.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA / CONTACT ─── -->
+<section class="cta-section" id="contact">
+  <div class="container">
+    <div class="cta-card reveal">
+      <h2>Let's find your<br>next 100 roofs</h2>
+      <p>We're onboarding solar installers across Selangor and greater Klang Valley. 3-month pilot. Your choice of segments. Milestone billing only.</p>
+
+      <form class="cta-form" id="inquiry-form">
+        <div class="cta-row">
+          <input type="text" name="company" class="cta-input" placeholder="Company name" required />
+          <input type="text" name="name" class="cta-input" placeholder="Your name" required />
+        </div>
+        <div class="cta-row">
+          <input type="text" name="phone" class="cta-input" placeholder="WhatsApp number" required />
+          <input type="email" name="email" class="cta-input" placeholder="Email address" required />
+        </div>
+        <select name="segments" class="cta-input" required>
+          <option value="">Select your target segments...</option>
+          <option value="factories">Factories & Manufacturers</option>
+          <option value="warehouses">Warehouses & Logistics</option>
+          <option value="commercial">Commercial Buildings</option>
+          <option value="residential">Premium Residential</option>
+          <option value="all">All segments</option>
+        </select>
+        <input type="text" name="target" class="cta-input" placeholder="Monthly appointment target (e.g. 15–20)" />
+        <textarea name="notes" class="cta-input" placeholder="Tell us about your pipeline — where are leads dropping off, what volume are you doing now, what have you tried..."></textarea>
+        <button type="submit" class="cta-submit" id="submit-btn">Send Inquiry →</button>
+        <p id="form-status" style="text-align:center; font-size:14px; margin-top:8px; display:none;"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">Prosp<span>ek</span>.my</div>
+      <div class="footer-copy">© 2026 Prospek · Solar Acquisition Platform · Malaysia</div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Bahasa Malaysia</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Nav scroll behavior
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // Scroll reveal with IntersectionObserver
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Contact form submission
+  const form = document.getElementById('inquiry-form');
+  const statusEl = document.getElementById('form-status');
+  const submitBtn = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    statusEl.style.display = 'none';
+
+    try {
+      // POST to LeadGenEngine intake endpoint
+      const res = await fetch('/api/v1/leads/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: data.company,
+          contact_name: data.name,
+          phone: data.phone,
+          email: data.email,
+          segments: data.segments,
+          target: data.target,
+          notes: data.notes,
+          source: 'prospek_landing',
+        }),
+      });
+
+      if (res.ok) {
+        statusEl.textContent = 'Inquiry sent — we\'ll be in touch within 24 hours.';
+        statusEl.style.color = '#22C55E';
+        statusEl.style.display = 'block';
+        form.reset();
+      } else {
+        throw new Error('Server error');
+      }
+    } catch {
+      statusEl.textContent = 'Something went wrong. WhatsApp us at +60 12-345 6789 instead.';
+      statusEl.style.color = '#EF4444';
+      statusEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Inquiry →';
+    }
+  });
+</script>
+
+</body>
+</html>
