@@ -23,9 +23,11 @@ Output:
 
 import os
 import sys
+import json
 import math
 import tempfile
 import io
+from pathlib import Path
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.colors import HexColor, white, black, Color
@@ -46,6 +48,41 @@ try:
     HAS_IMAGE_DEPS = True
 except ImportError:
     HAS_IMAGE_DEPS = False
+
+
+# ─── SMP Data Loading ───
+def load_smp_history() -> list[dict]:
+    """Load SMP history from smp_history.json (managed by smp-update.py)."""
+    smp_file = Path(__file__).parent / "smp_history.json"
+    if smp_file.exists():
+        with open(smp_file) as f:
+            return sorted(json.load(f), key=lambda x: x["month"], reverse=True)
+    return []
+
+
+def get_smp_stats(months: int = 12) -> dict:
+    """Calculate SMP statistics. Returns dict with avg, min, max, latest, history."""
+    data = load_smp_history()[:months]
+    if not data:
+        # Fallback if no history file
+        return {
+            "avg": 0.20, "min": 0.15, "max": 0.25,
+            "latest": 0.20, "latest_month": "unknown",
+            "history": [], "count": 0, "source": "fallback",
+        }
+    values = [d["smp"] for d in data]
+    all_estimated = all(d.get("source") == "estimated" for d in data)
+    return {
+        "avg": sum(values) / len(values),
+        "min": min(values),
+        "max": max(values),
+        "latest": data[0]["smp"],
+        "latest_month": data[0]["month"],
+        "history": data,
+        "count": len(values),
+        "source": "estimated" if all_estimated else "singlebuyer",
+    }
+
 
 # ─── Color Palette ───
 AMBER = HexColor("#F59E0B")
@@ -174,6 +211,9 @@ def generate_roof_overlay(sat_img: PILImage.Image, size_kwp: int,
 
 def save_image_for_pdf(pil_img: PILImage.Image, label: str = "satellite") -> str:
     """Save PIL image to temp file for ReportLab embedding."""
+    # Convert to RGB if needed (palette mode 'P' or RGBA can't save as JPEG)
+    if pil_img.mode in ('P', 'RGBA', 'LA'):
+        pil_img = pil_img.convert('RGB')
     tmp = tempfile.NamedTemporaryFile(suffix=f"_{label}.jpg", delete=False)
     pil_img.save(tmp, format="JPEG", quality=90)
     tmp.close()
@@ -268,7 +308,7 @@ PROSPECT = {
     "annual_gen_kwh": 364_000,
     "self_consumption_pct": 80,
     "blended_tariff": 0.334,
-    "smp_floor": 0.20,
+    "smp_floor": 0.20,  # Default fallback; overridden by dynamic SMP in build_dossier()
     "capex_low": 512_000,
     "capex_mid": 570_000,
     "capex_high": 629_000,
@@ -550,6 +590,102 @@ def build_smp_sensitivity_drawing(p):
 
     d.add(String(cl, ct + 8, "Annual Savings vs SMP Rate",
                  fontName="Helvetica-Bold", fontSize=9, fillColor=GRAY_700))
+
+    return d
+
+
+def build_smp_volatility_drawing(smp_stats):
+    """Create 12-month SMP historical volatility chart."""
+    d = Drawing(USABLE_W, 130)
+
+    history = sorted(smp_stats.get("history", []), key=lambda x: x["month"])
+    if len(history) < 3:
+        d.add(String(float(USABLE_W) / 2, 65, "Insufficient SMP history for volatility chart",
+                     fontName="Helvetica", fontSize=9, fillColor=GRAY_400, textAnchor="middle"))
+        return d
+
+    avg = smp_stats["avg"]
+    smp_min = smp_stats["min"]
+    smp_max = smp_stats["max"]
+
+    # Chart area
+    cl = 55  # left
+    cb = 25  # bottom
+    cw = float(USABLE_W) - 75
+    ch = 80
+    cr = cl + cw
+    ct = cb + ch
+
+    # Y range with padding
+    y_min = smp_min - 0.01
+    y_max = smp_max + 0.01
+
+    def tx(i):
+        return cl + (i / max(len(history) - 1, 1)) * cw
+
+    def ty(val):
+        return cb + ((val - y_min) / max(y_max - y_min, 0.001)) * ch
+
+    # Background
+    d.add(Rect(cl, cb, cw, ch, fillColor=GRAY_50, strokeColor=GRAY_200, strokeWidth=0.5))
+
+    # Average line (dashed)
+    avg_y = ty(avg)
+    d.add(Line(cl, avg_y, cr, avg_y, strokeColor=BLUE, strokeWidth=1, strokeDashArray=[4, 3]))
+    d.add(String(cr + 3, avg_y - 3, f"Avg {avg:.2f}",
+                 fontName="Helvetica", fontSize=7, fillColor=BLUE))
+
+    # Min/max band (light fill)
+    min_y = ty(smp_min)
+    max_y = ty(smp_max)
+    d.add(Rect(cl, min_y, cw, max_y - min_y,
+               fillColor=Color(0.95, 0.87, 0.73, 0.3), strokeColor=None))
+
+    # Plot line
+    for i in range(1, len(history)):
+        x0 = tx(i - 1)
+        y0 = ty(history[i - 1]["smp"])
+        x1 = tx(i)
+        y1 = ty(history[i]["smp"])
+        d.add(Line(x0, y0, x1, y1, strokeColor=AMBER, strokeWidth=2))
+
+    # Points
+    for i, entry in enumerate(history):
+        x = tx(i)
+        y = ty(entry["smp"])
+        is_estimated = entry.get("source") == "estimated"
+        fill = GRAY_300 if is_estimated else AMBER
+        d.add(Circle(x, y, 2.5, fillColor=fill, strokeColor=white, strokeWidth=0.8))
+
+    # X-axis labels (every 3 months)
+    for i, entry in enumerate(history):
+        if i % 3 == 0 or i == len(history) - 1:
+            label = entry["month"][2:]  # "25-01" from "2025-01"
+            d.add(String(tx(i), cb - 12, label,
+                         fontName="Helvetica", fontSize=6.5, fillColor=GRAY_400, textAnchor="middle"))
+
+    # Y-axis labels
+    step = 0.02
+    v = round(y_min / step) * step
+    while v <= y_max + 0.001:
+        gy = ty(v)
+        if cb <= gy <= ct:
+            d.add(String(cl - 4, gy - 3, f"{v:.2f}",
+                         fontName="Helvetica", fontSize=7, fillColor=GRAY_400, textAnchor="end"))
+        v += step
+
+    # Title
+    d.add(String(cl, ct + 8, "SMP Monthly Trend (RM/kWh)",
+                 fontName="Helvetica-Bold", fontSize=9, fillColor=GRAY_700))
+
+    # Legend
+    lx = cr - 90
+    d.add(Circle(lx, ct + 10, 2.5, fillColor=AMBER, strokeColor=white, strokeWidth=0.5))
+    d.add(String(lx + 6, ct + 7, "Published",
+                 fontName="Helvetica", fontSize=6.5, fillColor=GRAY_500))
+    d.add(Circle(lx + 50, ct + 10, 2.5, fillColor=GRAY_300, strokeColor=white, strokeWidth=0.5))
+    d.add(String(lx + 56, ct + 7, "Estimated",
+                 fontName="Helvetica", fontSize=6.5, fillColor=GRAY_500))
 
     return d
 
@@ -888,6 +1024,224 @@ def section_energy_flow(story, p):
     ))
 
 
+def build_load_profile_drawing(p):
+    """Create 24-hour load vs solar generation overlay chart."""
+    d = Drawing(USABLE_W, 170)
+
+    chart_left = 55
+    chart_bottom = 35
+    chart_width = float(USABLE_W) - 75
+    chart_height = 115
+    chart_right = chart_left + chart_width
+    chart_top = chart_bottom + chart_height
+
+    # Factory load profile (kW) — day-dominant pattern
+    # 7am ramp up, 6pm ramp down, minimal night load
+    md = p["md_kw"]
+    load_profile = [
+        0.15, 0.15, 0.15, 0.15, 0.15, 0.18,   # 00–05: night base load
+        0.35, 0.70, 0.85, 0.90, 0.92, 0.95,    # 06–11: morning ramp
+        0.88, 0.93, 0.95, 0.92, 0.88, 0.75,    # 12–17: afternoon
+        0.45, 0.25, 0.18, 0.15, 0.15, 0.15,    # 18–23: evening wind-down
+    ]
+    load_kw = [md * f for f in load_profile]
+
+    # Solar generation profile (kW) — bell curve, peak at noon
+    peak_kw = p["size_kwp"] * 0.85  # derate factor
+    solar_profile = [
+        0, 0, 0, 0, 0, 0,                       # 00–05
+        0.02, 0.15, 0.40, 0.65, 0.85, 0.95,     # 06–11
+        1.00, 0.95, 0.85, 0.65, 0.40, 0.15,     # 12–17
+        0.02, 0, 0, 0, 0, 0,                     # 18–23
+    ]
+    solar_kw = [peak_kw * f for f in solar_profile]
+
+    # Scale
+    max_val = max(max(load_kw), max(solar_kw)) * 1.05
+    y_min = 0
+    y_max = max_val
+
+    def to_x(hour):
+        return chart_left + (hour / 23) * chart_width
+
+    def to_y(val):
+        return chart_bottom + (val / y_max) * chart_height
+
+    # Background
+    d.add(Rect(chart_left, chart_bottom, chart_width, chart_height,
+               fillColor=GRAY_50, strokeColor=GRAY_200, strokeWidth=0.5))
+
+    # Fill self-consumed area (overlap between solar and load) — green
+    for h in range(23):
+        x0 = to_x(h)
+        x1 = to_x(h + 1)
+        s0 = min(solar_kw[h], load_kw[h])
+        s1 = min(solar_kw[h + 1], load_kw[h + 1])
+        if s0 > 0 or s1 > 0:
+            # Approximate with rectangle
+            avg_s = (s0 + s1) / 2
+            d.add(Rect(x0, chart_bottom, x1 - x0, to_y(avg_s) - chart_bottom,
+                       fillColor=Color(0.133, 0.773, 0.369, 0.15),
+                       strokeColor=None))
+
+    # Fill export area (solar > load) — amber tint
+    for h in range(23):
+        x0 = to_x(h)
+        x1 = to_x(h + 1)
+        excess0 = max(0, solar_kw[h] - load_kw[h])
+        excess1 = max(0, solar_kw[h + 1] - load_kw[h + 1])
+        base0 = min(solar_kw[h], load_kw[h])
+        base1 = min(solar_kw[h + 1], load_kw[h + 1])
+        if excess0 > 0 or excess1 > 0:
+            avg_base = (base0 + base1) / 2
+            avg_top = avg_base + (excess0 + excess1) / 2
+            d.add(Rect(x0, to_y(avg_base), x1 - x0, to_y(avg_top) - to_y(avg_base),
+                       fillColor=Color(0.961, 0.620, 0.043, 0.15),
+                       strokeColor=None))
+
+    # Load line — white/gray
+    for h in range(23):
+        d.add(Line(to_x(h), to_y(load_kw[h]), to_x(h + 1), to_y(load_kw[h + 1]),
+                   strokeColor=GRAY_400, strokeWidth=1.5, strokeDashArray=[4, 2]))
+
+    # Solar line — amber
+    for h in range(23):
+        d.add(Line(to_x(h), to_y(solar_kw[h]), to_x(h + 1), to_y(solar_kw[h + 1]),
+                   strokeColor=AMBER, strokeWidth=2))
+
+    # Y-axis labels
+    for val in range(0, int(y_max) + 50, 50):
+        gy = to_y(val)
+        if chart_bottom <= gy <= chart_top:
+            d.add(Line(chart_left, gy, chart_right, gy,
+                       strokeColor=GRAY_200, strokeWidth=0.3))
+            d.add(String(chart_left - 5, gy - 3, f"{val} kW",
+                         fontName="Helvetica", fontSize=7, fillColor=GRAY_400,
+                         textAnchor="end"))
+
+    # X-axis labels
+    for h in [0, 3, 6, 9, 12, 15, 18, 21]:
+        d.add(String(to_x(h), chart_bottom - 12, f"{h:02d}:00",
+                     fontName="Helvetica", fontSize=7, fillColor=GRAY_400,
+                     textAnchor="middle"))
+
+    # Title
+    d.add(String(chart_left, chart_top + 10, "24-Hour Load vs Solar Generation Profile",
+                 fontName="Helvetica-Bold", fontSize=9, fillColor=GRAY_700))
+
+    # Legend
+    leg_y = chart_top + 10
+    leg_x = chart_right - 180
+    d.add(Line(leg_x, leg_y + 3, leg_x + 15, leg_y + 3,
+               strokeColor=GRAY_400, strokeWidth=1.5, strokeDashArray=[4, 2]))
+    d.add(String(leg_x + 18, leg_y - 1, "Factory Load",
+                 fontName="Helvetica", fontSize=7, fillColor=GRAY_500))
+    d.add(Line(leg_x + 80, leg_y + 3, leg_x + 95, leg_y + 3,
+               strokeColor=AMBER, strokeWidth=2))
+    d.add(String(leg_x + 98, leg_y - 1, "Solar Output",
+                 fontName="Helvetica", fontSize=7, fillColor=GRAY_500))
+
+    return d
+
+
+def section_load_profile(story, p):
+    """Load profile vs solar generation overlay — Pro + Premium."""
+    story.append(Paragraph("Load Profile Analysis", S["h2"]))
+    story.append(Paragraph(
+        f"Day-dominant operations ({p.get('operating_hours', '7am-6pm')}) align well with solar "
+        f"generation. The {p['size_kwp']} kWp system is sized to maximise overlap between "
+        "generation output and factory consumption, minimising export dependence.",
+        S["body"],
+    ))
+
+    story.append(build_load_profile_drawing(p))
+    story.append(Spacer(1, 8))
+
+    # Calculate overlap stats
+    peak_kw = p["size_kwp"] * 0.85
+    load_factors = [
+        0.15, 0.15, 0.15, 0.15, 0.15, 0.18,
+        0.35, 0.70, 0.85, 0.90, 0.92, 0.95,
+        0.88, 0.93, 0.95, 0.92, 0.88, 0.75,
+        0.45, 0.25, 0.18, 0.15, 0.15, 0.15,
+    ]
+    solar_factors = [
+        0, 0, 0, 0, 0, 0,
+        0.02, 0.15, 0.40, 0.65, 0.85, 0.95,
+        1.00, 0.95, 0.85, 0.65, 0.40, 0.15,
+        0.02, 0, 0, 0, 0, 0,
+    ]
+    total_solar = sum(peak_kw * f for f in solar_factors)
+    total_self = sum(min(peak_kw * sf, p["md_kw"] * lf)
+                     for sf, lf in zip(solar_factors, load_factors))
+    overlap_pct = (total_self / total_solar * 100) if total_solar > 0 else 0
+
+    story.append(Paragraph(
+        f"KEY INSIGHT: At current operating hours, approximately {overlap_pct:.0f}% of solar "
+        f"output is absorbed directly by factory load (green zone). The remaining "
+        f"{100 - overlap_pct:.0f}% is exported at SMP rates (amber zone). "
+        f"This confirms {p['self_consumption_pct']}% self-consumption is a realistic, "
+        "not optimistic, assumption.",
+        S["callout_blue"],
+    ))
+
+
+def section_methodology(story, p, brand_name):
+    """Methodology differentiation — Premium only."""
+    story.append(Paragraph("Report Methodology", S["h2"]))
+
+    story.append(Paragraph(
+        "This report is produced by an independent solar acquisition intelligence engine. "
+        "It is not an EPC sales proposal. The methodology is designed to protect the "
+        "building owner from common industry pitfalls.",
+        S["body"],
+    ))
+
+    story.append(Spacer(1, 8))
+    story.append(Paragraph("How this differs from a conventional EPC quote:", S["h3"]))
+
+    diffs = [
+        ["Dimension", f"{brand_name} Intelligence Dossier", "Typical EPC Quote"],
+        ["Sizing logic", "75–85% of MD to minimise forfeiture",
+         "Roof-max to maximise equipment sale"],
+        ["Export modelling", "SMP sensitivity across full range\n(RM 0.15–0.40)",
+         "Often omitted or assumed favourable"],
+        ["Forfeiture risk", "Monthly forfeiture quantified\n(Hari Raya, CNY, weekends)",
+         "Rarely discussed"],
+        ["ATAP compliance", "Hard gate validation before sizing",
+         "Assumed or deferred to application"],
+        ["Financial bias", "No equipment markup — independent\nassessment",
+         "Bundled with equipment pricing"],
+        ["Oversizing warning", "Quantified value loss at roof-max\nvs optimised size",
+         "Not disclosed — larger system\n= higher margin"],
+    ]
+    t = Table(diffs, colWidths=[30 * mm, (USABLE_W - 30 * mm) / 2, (USABLE_W - 30 * mm) / 2])
+    t.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("TEXTCOLOR", (0, 0), (-1, 0), GRAY_500),
+        ("TEXTCOLOR", (0, 1), (0, -1), GRAY_500),
+        ("TEXTCOLOR", (1, 1), (1, -1), GREEN_DARK),
+        ("TEXTCOLOR", (2, 1), (2, -1), GRAY_500),
+        ("BACKGROUND", (0, 0), (-1, 0), GRAY_100),
+        ("BACKGROUND", (1, 1), (1, -1), HexColor("#F0FDF4")),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, GRAY_200),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph(
+        "This methodology ensures the building owner receives decision-grade intelligence "
+        "before committing to any EPC contractor. The assessment fee is deductible upon "
+        "project award — aligning incentives with the owner, not the installer.",
+        S["callout_green"],
+    ))
+
+
 def section_eligibility(story, p):
     """ATAP Eligibility — all tiers."""
     story.append(Paragraph("ATAP Eligibility Assessment", S["h2"]))
@@ -1061,59 +1415,145 @@ def section_cashflow(story, p):
     ))
 
 
-def section_smp_sensitivity(story, p):
-    """SMP sensitivity — Pro + Premium."""
-    story.append(Paragraph("SMP Sensitivity Analysis", S["h2"]))
+def section_smp_sensitivity(story, p, smp_stats=None):
+    """SMP Export Risk Envelope — Pro + Premium.
+
+    Upgraded from simple sensitivity table to institutional-grade analysis
+    with dynamic SMP data, volatility chart, and export exposure quantification.
+    """
+    if smp_stats is None:
+        smp_stats = get_smp_stats()
+
+    smp_latest = smp_stats["latest"]
+    smp_avg = smp_stats["avg"]
+    smp_min = smp_stats["min"]
+    smp_max = smp_stats["max"]
+    smp_month = smp_stats.get("latest_month", "unknown")
+    smp_source = smp_stats.get("source", "estimated")
+
+    story.append(Paragraph("SMP Exposure &amp; Export Risk Envelope", S["h2"]))
+
+    # Dynamic intro referencing actual data
+    source_label = "Single Buyer published data" if smp_source == "singlebuyer" else "estimated market data"
     story.append(Paragraph(
-        "The System Marginal Price fluctuates monthly based on fuel costs and dispatch order.",
+        f"The System Marginal Price (SMP) is the wholesale electricity clearing price, "
+        f"published monthly by Single Buyer Malaysia under the MESI framework. "
+        f"Export credits under Solar ATAP are settled at Average SMP (7am–7pm). "
+        f"Analysis below uses {source_label} — "
+        f"latest: RM {smp_latest:.4f}/kWh ({smp_month}).",
         S["body"],
     ))
+    story.append(Spacer(1, 6))
 
-    story.append(build_smp_sensitivity_drawing(p))
-    story.append(Spacer(1, 8))
+    # ─── SMP Summary Stats Box ───
+    stats_data = [
+        ["Metric", "Value"],
+        ["Latest Monthly SMP", f"RM {smp_latest:.4f}/kWh ({smp_month})"],
+        ["12-Month Average", f"RM {smp_avg:.4f}/kWh"],
+        ["12-Month Range", f"RM {smp_min:.4f} – {smp_max:.4f}/kWh"],
+        ["Volatility (max-min)", f"RM {smp_max - smp_min:.4f}/kWh"],
+        ["Data Source", "www.singlebuyer.com.my"],
+    ]
+    t = make_table(stats_data, [45 * mm, USABLE_W - 45 * mm])
+    t.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BACKGROUND", (0, 1), (0, -1), GRAY_50),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 10))
+
+    # ─── Volatility Chart (Premium only — driven by tier in caller) ───
+    if len(smp_stats.get("history", [])) >= 3:
+        story.append(Paragraph("Monthly SMP Trend", S["h3"]))
+        story.append(build_smp_volatility_drawing(smp_stats))
+        story.append(Spacer(1, 10))
+
+    # ─── Sensitivity Table (uses dynamic SMP as base) ───
+    story.append(Paragraph("Export Revenue Sensitivity", S["h3"]))
 
     self_kwh = p["annual_gen_kwh"] * p["self_consumption_pct"] / 100
     export_kwh = p["annual_gen_kwh"] * (1 - p["self_consumption_pct"] / 100)
     self_savings = self_kwh * p["blended_tariff"]
 
-    smp_data = [
-        ["SMP Rate", "Export Revenue", "Total Savings", "Payback", "Impact vs Floor"],
-        ["RM 0.15/kWh", f"RM {export_kwh*0.15:,.0f}", f"RM {self_savings+export_kwh*0.15:,.0f}",
-         f"{p['capex_mid']/(self_savings+export_kwh*0.15):.1f} yrs",
-         f"-RM {export_kwh*(0.20-0.15):,.0f}"],
-        ["RM 0.20/kWh (floor)", f"RM {export_kwh*0.20:,.0f}", f"RM {self_savings+export_kwh*0.20:,.0f}",
-         f"{p['capex_mid']/(self_savings+export_kwh*0.20):.1f} yrs", "Base"],
-        ["RM 0.25/kWh", f"RM {export_kwh*0.25:,.0f}", f"RM {self_savings+export_kwh*0.25:,.0f}",
-         f"{p['capex_mid']/(self_savings+export_kwh*0.25):.1f} yrs",
-         f"+RM {export_kwh*(0.25-0.20):,.0f}"],
-        ["RM 0.30/kWh", f"RM {export_kwh*0.30:,.0f}", f"RM {self_savings+export_kwh*0.30:,.0f}",
-         f"{p['capex_mid']/(self_savings+export_kwh*0.30):.1f} yrs",
-         f"+RM {export_kwh*(0.30-0.20):,.0f}"],
-        ["RM 0.40/kWh (peak)", f"RM {export_kwh*0.40:,.0f}", f"RM {self_savings+export_kwh*0.40:,.0f}",
-         f"{p['capex_mid']/(self_savings+export_kwh*0.40):.1f} yrs",
-         f"+RM {export_kwh*(0.40-0.20):,.0f}"],
+    # Build sensitivity around actual SMP data points
+    smp_floor = round(smp_avg, 2)
+    smp_rates = [
+        max(0.10, smp_floor - 0.05),
+        smp_floor,
+        smp_floor + 0.05,
+        smp_floor + 0.10,
+        min(0.40, smp_floor + 0.20),
     ]
-    t = make_table(smp_data, [28*mm, 28*mm, 30*mm, 22*mm, USABLE_W - 108*mm], highlight_row=2)
+    # Deduplicate and sort
+    smp_rates = sorted(set(round(r, 2) for r in smp_rates))
+
+    smp_data = [["SMP Rate", "Export Revenue", "Total Savings", "Payback", "vs. Base"]]
+    base_savings = self_savings + export_kwh * smp_floor
+
+    for rate in smp_rates:
+        total = self_savings + export_kwh * rate
+        delta = export_kwh * (rate - smp_floor)
+        is_base = abs(rate - smp_floor) < 0.005
+        label = f"RM {rate:.2f}" + (" (12M avg)" if is_base else "")
+        delta_str = "Base" if is_base else f"{'+'if delta>=0 else ''}RM {delta:,.0f}"
+        smp_data.append([
+            label,
+            f"RM {export_kwh * rate:,.0f}",
+            f"RM {total:,.0f}",
+            f"{p['capex_mid'] / total:.1f} yrs",
+            delta_str,
+        ])
+
+    base_row_idx = next((i + 1 for i, r in enumerate(smp_rates) if abs(r - smp_floor) < 0.005), 2)
+    t = make_table(smp_data, [30*mm, 28*mm, 28*mm, 22*mm, USABLE_W - 108*mm],
+                   highlight_row=base_row_idx)
     t.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("FONTNAME", (0, 2), (0, 2), "Helvetica-Bold"),
+        ("FONTNAME", (0, base_row_idx), (0, base_row_idx), "Helvetica-Bold"),
         ("ALIGN", (1, 0), (3, -1), "RIGHT"),
     ]))
     story.append(t)
     story.append(Spacer(1, 8))
 
+    # ─── Sensitivity line chart ───
+    story.append(build_smp_sensitivity_drawing(p))
+    story.append(Spacer(1, 10))
+
+    # ─── Export Exposure Quantification ───
+    story.append(Paragraph("Export Exposure Impact", S["h3"]))
+    smp_swing = export_kwh * (smp_max - smp_min)
+    pct_impact = (smp_swing / base_savings) * 100
+
     story.append(Paragraph(
-        f"KEY INSIGHT: At {p['self_consumption_pct']}% self-consumption, the full SMP range "
-        f"(RM 0.15-0.40) causes only a RM {export_kwh*(0.40-0.15):,.0f} swing — ~16% variance. "
-        "The primary savings driver is self-consumed generation displacing TNB tariff, not export credits.",
+        f"EXPORT RISK ENVELOPE: At {p['self_consumption_pct']}% self-consumption, "
+        f"only {100 - p['self_consumption_pct']}% of generation ({export_kwh:,.0f} kWh) "
+        f"is exposed to SMP volatility. "
+        f"The 12-month observed range (RM {smp_min:.2f}–{smp_max:.2f}) "
+        f"causes a maximum swing of RM {smp_swing:,.0f}/year — "
+        f"just {pct_impact:.1f}% of total annual savings. "
+        f"Self-consumed generation displacing TNB tariff at RM {p['blended_tariff']:.3f}/kWh "
+        f"drives {p['self_consumption_pct']}% of the economics.",
         S["callout_blue"],
     ))
 
+    # Payback impact calculation
+    payback_at_min = p["capex_mid"] / (self_savings + export_kwh * smp_min)
+    payback_at_max = p["capex_mid"] / (self_savings + export_kwh * smp_max)
+    payback_delta = abs(payback_at_min - payback_at_max)
+
     story.append(Paragraph(
-        "NOTE: Monthly Average SMP is published by Single Buyer "
-        "(www.singlebuyer.com.my/resources-marginal.php) under the Malaysian MESI framework. "
-        "The RM 0.20/kWh floor is a conservative estimate. Final economics should use the "
-        "actual published SMP figure at time of proposal.",
+        f"PAYBACK RESILIENCE: Across the full 12-month SMP range, payback varies by "
+        f"only {payback_delta:.1f} years ({payback_at_min:.1f}–{payback_at_max:.1f} yrs). "
+        f"This confirms the investment case is robust against wholesale price fluctuation.",
+        S["callout_green"] if "callout_green" in S else S["callout_blue"],
+    ))
+
+    story.append(Paragraph(
+        f"NOTE: SMP data sourced from Single Buyer Malaysia "
+        f"(www.singlebuyer.com.my/resources-marginal.php). "
+        f"{'Values shown are estimates pending official confirmation. ' if smp_source == 'estimated' else ''}"
+        f"Final proposal economics will use the published SMP figure "
+        f"for the month of proposal issuance.",
         S["callout_amber"],
     ))
 
@@ -1303,7 +1743,19 @@ def build_dossier(output_path: str, tier: str = "premium",
     )
 
     story = []
-    p = PROSPECT
+    p = dict(PROSPECT)  # copy so we can override
+
+    # ─── Load dynamic SMP data ───
+    smp_stats = get_smp_stats(months=12)
+    if smp_stats["count"] > 0:
+        p["smp_floor"] = round(smp_stats["avg"], 4)
+        print(f"[SMP] Using 12M average: RM {p['smp_floor']:.4f}/kWh "
+              f"(range {smp_stats['min']:.4f}–{smp_stats['max']:.4f}, "
+              f"latest {smp_stats['latest']:.4f} {smp_stats['latest_month']}, "
+              f"source: {smp_stats['source']})")
+    else:
+        print("[SMP] No history data — using default floor RM 0.20/kWh")
+
     brand_name = white_label or "POWERROOF"
     brand_footer = (
         f"{white_label} | Powered by PowerRoof.my"
@@ -1352,17 +1804,21 @@ def build_dossier(output_path: str, tier: str = "premium",
         section_sizing(story, p)
         story.append(PageBreak())
         section_energy_flow(story, p)
+        section_load_profile(story, p)
+        story.append(PageBreak())
         section_financial(story, p)
         story.append(PageBreak())
         section_cashflow(story, p)
-        section_smp_sensitivity(story, p)
+        section_smp_sensitivity(story, p, smp_stats)
         story.append(PageBreak())
         section_forfeiture(story, p)
         section_roadmap(story, p)
         section_disclaimer(story, p, brand_footer)
 
     elif tier == "premium":
-        # Premium: full 14-page dossier with satellite imagery
+        # Premium: full dossier with satellite imagery + load profile + methodology
+        story.append(PageBreak())
+        section_methodology(story, p, brand_name)
         story.append(PageBreak())
         section_facility_intelligence(story, p)
         story.append(PageBreak())
@@ -1375,11 +1831,13 @@ def build_dossier(output_path: str, tier: str = "premium",
         section_sizing(story, p)
         story.append(PageBreak())
         section_energy_flow(story, p)
+        section_load_profile(story, p)
+        story.append(PageBreak())
         section_financial(story, p)
         story.append(PageBreak())
         section_cashflow(story, p)
         story.append(PageBreak())
-        section_smp_sensitivity(story, p)
+        section_smp_sensitivity(story, p, smp_stats)
         story.append(PageBreak())
         section_forfeiture(story, p)
         story.append(PageBreak())

@@ -1,0 +1,72 @@
+[
+  {
+    "month": "2026-02",
+    "smp": 0.218,
+    "source": "estimated"
+  },
+  {
+    "month": "2026-01",
+    "smp": 0.214,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-12",
+    "smp": 0.2,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-11",
+    "smp": 0.205,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-10",
+    "smp": 0.21,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-09",
+    "smp": 0.219,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-08",
+    "smp": 0.228,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-07",
+    "smp": 0.235,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-06",
+    "smp": 0.242,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-05",
+    "smp": 0.231,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-04",
+    "smp": 0.22,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-03",
+    "smp": 0.212,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-02",
+    "smp": 0.195,
+    "source": "estimated"
+  },
+  {
+    "month": "2025-01",
+    "smp": 0.208,
+    "source": "estimated"
+  }
+]

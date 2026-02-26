@@ -3,12 +3,14 @@
 -- Run this in Supabase SQL editor to populate demo data
 -- All data is fictional but realistic for Selangor C&I solar
 -- ============================================================
+-- PREREQUISITE: Run all_migrations_combined.sql FIRST to create
+-- the schema (companies, contacts, leads, activities, profiles).
 
 -- 1. COMPANIES (represents your 161 Apify-scraped factories)
--- Run schema migration first to add ATAP columns if not done:
-ALTER TABLE companies 
+-- Add ATAP-specific columns if not already present:
+ALTER TABLE companies
   ADD COLUMN IF NOT EXISTS estimated_md_kw numeric,
-  ADD COLUMN IF NOT EXISTS tenant_structure text DEFAULT 'unknown' 
+  ADD COLUMN IF NOT EXISTS tenant_structure text DEFAULT 'unknown'
     CHECK (tenant_structure IN ('single','multi','unknown')),
   ADD COLUMN IF NOT EXISTS operating_hours text DEFAULT 'unknown'
     CHECK (operating_hours IN ('day_dominant','shift','night_heavy','24hr','unknown')),
@@ -18,6 +20,10 @@ ALTER TABLE companies
   ADD COLUMN IF NOT EXISTS atap_disqualify_reason text,
   ADD COLUMN IF NOT EXISTS composite_score integer DEFAULT 0,
   ADD COLUMN IF NOT EXISTS score_tier text DEFAULT 'C';
+
+-- Add unique constraint on registration_no for upsert
+ALTER TABLE companies ADD CONSTRAINT IF NOT EXISTS companies_registration_no_key
+  UNIQUE (registration_no);
 
 -- ── TIER A PROSPECTS (score 75–100) ──────────────────────────
 INSERT INTO companies (name, registration_no, sector, zone, estimated_md_kw, tenant_structure, operating_hours, estimated_roof_sqft, tnb_bill_band, atap_eligible, composite_score, score_tier)
@@ -56,21 +62,13 @@ UPDATE companies SET atap_disqualify_reason = 'MD below minimum viable threshold
 
 
 -- 2. CONTACTS (decision makers with direct numbers)
-CREATE TABLE IF NOT EXISTS contacts (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  company_id uuid REFERENCES companies(id) ON DELETE CASCADE,
-  name text NOT NULL,
-  role text,
-  authority_level integer DEFAULT 3 CHECK (authority_level BETWEEN 1 AND 5),
-  phone text,
-  whatsapp text,
-  email text,
-  linkedin text,
-  notes text,
-  created_at timestamptz DEFAULT now()
-);
+-- The migration schema uses full_name, not name. Add extra columns if needed.
+ALTER TABLE contacts
+  ADD COLUMN IF NOT EXISTS authority_level integer DEFAULT 3 CHECK (authority_level BETWEEN 1 AND 5),
+  ADD COLUMN IF NOT EXISTS whatsapp text,
+  ADD COLUMN IF NOT EXISTS linkedin text,
+  ADD COLUMN IF NOT EXISTS notes text;
 
--- Get company IDs dynamically for contacts
 DO $$
 DECLARE
   mega_id uuid;
@@ -83,7 +81,7 @@ BEGIN
   SELECT id INTO pj_pack_id FROM companies WHERE name = 'PJ Packaging Berhad';
   SELECT id INTO subang_food_id FROM companies WHERE name = 'Subang Food Industries Sdn Bhd';
 
-  INSERT INTO contacts (company_id, name, role, authority_level, phone, notes)
+  INSERT INTO contacts (company_id, full_name, role, authority_level, phone, notes)
   VALUES
     (mega_id, 'En. Ahmad Razak bin Othman', 'Director / Owner', 5, '+60 12-334 5678', 'Confirmed building owner. Direct decision authority. Responded positively to energy cost discussion.'),
     (klang_metal_id, 'Mr. Tan Kee Wah', 'Managing Director', 5, '+60 16-789 0123', 'Owner-operated since 1998. Concerns about capex — may be receptive to PPA framing.'),
@@ -93,10 +91,13 @@ END $$;
 
 
 -- 3. LEADS (across all pipeline stages for demo visibility)
--- Assumes your leads table has the extended status enum
--- Run this first if needed:
--- ALTER TYPE lead_status ADD VALUE IF NOT EXISTS 'atap_eligible';
--- ALTER TYPE lead_status ADD VALUE IF NOT EXISTS 'survey_complete';
+-- The migration schema has: company_id, contact_id, opportunity_type, status, notes,
+-- qualification_json, client_id. We add extra columns for pipeline tracking:
+ALTER TABLE leads
+  ADD COLUMN IF NOT EXISTS estimated_kwp numeric,
+  ADD COLUMN IF NOT EXISTS estimated_contract_value numeric,
+  ADD COLUMN IF NOT EXISTS close_probability numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS assigned_to text;
 
 DO $$
 DECLARE
@@ -123,95 +124,91 @@ BEGIN
   SELECT id INTO subang_food_id FROM companies WHERE name = 'Subang Food Industries Sdn Bhd';
 
   INSERT INTO leads (
-    company_id, status, estimated_kwp, estimated_contract_value,
+    company_id, opportunity_type, status, estimated_kwp, estimated_contract_value,
     close_probability, assigned_to, notes, created_at, updated_at
   )
   VALUES
     -- Survey-ready (highest stage in demo)
-    (mega_id, 'appointment_booked', 280, 560000, 0.65, 'azrul@voltek.com.my',
+    (mega_id, 'solar', 'appointment_booked', 280, 560000, 0.65, 'azrul@voltek.com.my',
      'Pre-survey report delivered Feb 24. Site visit confirmed for next week. EN Ahmad Razak is owner-direct.', now() - interval '10 days', now()),
 
     -- Proposal stage
-    (klang_metal_id, 'appointment_booked', 350, 700000, 0.55, 'azrul@voltek.com.my',
+    (klang_metal_id, 'solar', 'appointment_booked', 350, 700000, 0.55, 'azrul@voltek.com.my',
      'Proposal sent Feb 20. Following up Tuesday. Owner Tan Kee Wah — may need PPA option.', now() - interval '15 days', now() - interval '2 days'),
 
     -- Appointment confirmed
-    (pj_pack_id, 'appointment_booked', 220, 440000, 0.45, 'farid@voltek.com.my',
+    (pj_pack_id, 'solar', 'appointment_booked', 220, 440000, 0.45, 'farid@voltek.com.my',
      'Site visit Monday. GM confirmed but needs board sign-off. Pre-survey report helps here.', now() - interval '8 days', now() - interval '1 day'),
 
     -- Qualified / ATAP screened
-    (shah_precision_id, 'qualified', 310, 620000, 0.35, 'azrul@voltek.com.my',
+    (shah_precision_id, 'solar', 'qualified', 310, 620000, 0.35, 'azrul@voltek.com.my',
      'ATAP eligible confirmed. Score 74. Enrichment complete. Ready for outreach call.', now() - interval '5 days', now() - interval '1 day'),
 
-    (subang_food_id, 'responded', 300, 600000, 0.30, 'farid@voltek.com.my',
+    (subang_food_id, 'solar', 'responded', 300, 600000, 0.30, 'farid@voltek.com.my',
      'CEO interested but requested written analysis. Pre-survey report sent. Await response.', now() - interval '6 days', now() - interval '2 days'),
 
     -- Outreach stage
-    (klang_rubber_id, 'outreached', 260, 520000, 0.20, 'azrul@voltek.com.my',
+    (klang_rubber_id, 'solar', 'outreached', 260, 520000, 0.20, 'azrul@voltek.com.my',
      'First call — reached admin. Callback requested. Objection: shift operations.', now() - interval '3 days', now()),
 
-    (puchong_steel_id, 'outreached', 300, 600000, 0.20, 'farid@voltek.com.my',
+    (puchong_steel_id, 'solar', 'outreached', 300, 600000, 0.20, 'farid@voltek.com.my',
      'Voicemail left. Attempting again Wed. Score 66.', now() - interval '2 days', now()),
 
     -- Identified (not yet called)
-    (port_klang_id, 'identified', 220, 440000, 0.10, null,
+    (port_klang_id, 'solar', 'identified', 220, 440000, 0.10, null,
      'Scored 65. Owner address confirmed via SSM. Assign to caller.', now() - interval '1 day', now()),
 
-    (subang_print_id, 'identified', 240, 480000, 0.10, null,
+    (subang_print_id, 'solar', 'identified', 240, 480000, 0.10, null,
      'Scored 63. Website shows factory expansion news. Good trigger signal.', now() - interval '1 day', now()),
 
-    (klang_auto_id, 'identified', 280, 560000, 0.10, null,
+    (klang_auto_id, 'solar', 'identified', 280, 560000, 0.10, null,
      'Scored 61. Shift operations — flag for day-load confirmation before outreach.', now(), now());
 END $$;
 
 
 -- 4. ACTIVITIES (call logs and notes for Mega Plastics)
+-- The migration schema uses: lead_id, action, metadata, actor_id.
+-- No activity_type, performed_by, or notes columns. Pack everything into metadata.
 DO $$
 DECLARE
   mega_lead_id uuid;
 BEGIN
-  SELECT l.id INTO mega_lead_id 
-  FROM leads l 
+  SELECT l.id INTO mega_lead_id
+  FROM leads l
   JOIN companies c ON l.company_id = c.id
   WHERE c.name = 'Mega Plastics Industries Sdn Bhd'
   LIMIT 1;
 
-  INSERT INTO activities (lead_id, activity_type, performed_by, notes, metadata, created_at)
+  INSERT INTO activities (lead_id, action, metadata, created_at)
   VALUES
-    (mega_lead_id, 'system', 'system', 
-     'Lead identified via Apify scrape. Zone: Shah Alam Seksyen 26. Composite score: 82.',
-     '{"score": 82, "zone": "Shah Alam", "source": "apify_maps"}',
+    (mega_lead_id, 'activity_logged',
+     '{"type": "system", "performed_by": "system", "notes": "Lead identified via Apify scrape. Zone: Shah Alam Seksyen 26. Composite score: 82.", "score": 82, "zone": "Shah Alam", "source": "apify_maps"}'::jsonb,
      now() - interval '12 days'),
 
-    (mega_lead_id, 'call', 'azrul@voltek.com.my',
-     'First contact. Reached admin, referred to En. Ahmad Razak. Called back same day. Confirmed owner and building ownership.',
-     '{"duration_min": 7, "authority_confirmed": true, "objection": null}',
+    (mega_lead_id, 'activity_logged',
+     '{"type": "call", "performed_by": "azrul@voltek.com.my", "notes": "First contact. Reached admin, referred to En. Ahmad Razak. Called back same day. Confirmed owner and building ownership.", "duration_min": 7, "authority_confirmed": true}'::jsonb,
      now() - interval '10 days'),
 
-    (mega_lead_id, 'call', 'azrul@voltek.com.my',
-     'Spoke with En. Ahmad Razak directly. High interest. Asked for written energy analysis before committing to site visit.',
-     '{"duration_min": 12, "authority_level": 5, "objection": "send_report_first"}',
+    (mega_lead_id, 'activity_logged',
+     '{"type": "call", "performed_by": "azrul@voltek.com.my", "notes": "Spoke with En. Ahmad Razak directly. High interest. Asked for written energy analysis before committing to site visit.", "duration_min": 12, "authority_level": 5, "objection": "send_report_first"}'::jsonb,
      now() - interval '8 days'),
 
-    (mega_lead_id, 'note', 'system',
-     'Pre-survey report generated: Mega Plastics Industries. System: 280 kWp. ATAP eligible. Savings RM111,821/year base case.',
-     '{"report_type": "pre_survey", "kwp": 280, "atap_eligible": true, "annual_savings_base": 111821}',
+    (mega_lead_id, 'activity_logged',
+     '{"type": "note", "performed_by": "system", "notes": "Pre-survey report generated: Mega Plastics Industries. System: 280 kWp. ATAP eligible. Savings RM111,821/year base case.", "report_type": "pre_survey", "kwp": 280, "atap_eligible": true, "annual_savings_base": 111821}'::jsonb,
      now() - interval '6 days'),
 
-    (mega_lead_id, 'email', 'azrul@voltek.com.my',
-     'Pre-survey report sent to En. Ahmad Razak via email. PDF attached.',
-     '{"report_sent": true, "delivery": "email"}',
+    (mega_lead_id, 'activity_logged',
+     '{"type": "email", "performed_by": "azrul@voltek.com.my", "notes": "Pre-survey report sent to En. Ahmad Razak via email. PDF attached.", "report_sent": true, "delivery": "email"}'::jsonb,
      now() - interval '6 days'),
 
-    (mega_lead_id, 'call', 'azrul@voltek.com.my',
-     'En. Ahmad Razak reviewed report. Impressed with ATAP sizing analysis. Site visit confirmed. Availability: next Tuesday or Wednesday.',
-     '{"duration_min": 8, "outcome": "appointment_confirmed", "next_action": "book_site_visit"}',
+    (mega_lead_id, 'activity_logged',
+     '{"type": "call", "performed_by": "azrul@voltek.com.my", "notes": "En. Ahmad Razak reviewed report. Impressed with ATAP sizing analysis. Site visit confirmed. Availability: next Tuesday or Wednesday.", "duration_min": 8, "outcome": "appointment_confirmed", "next_action": "book_site_visit"}'::jsonb,
      now() - interval '2 days');
 END $$;
 
 
 -- 5. VERIFICATION QUERY — run this to check data loaded correctly
-SELECT 
+SELECT
   'Companies loaded' as check_item,
   count(*) as count,
   count(CASE WHEN atap_eligible = true THEN 1 END) as atap_pass,
@@ -220,7 +217,7 @@ FROM companies
 
 UNION ALL
 
-SELECT 
+SELECT
   'Leads loaded',
   count(*),
   count(CASE WHEN status IN ('appointment_booked','qualified','responded') THEN 1 END),
@@ -229,7 +226,7 @@ FROM leads
 
 UNION ALL
 
-SELECT 
+SELECT
   'Activities loaded',
   count(*),
   0, 0
@@ -238,4 +235,4 @@ FROM activities;
 -- Expected output:
 -- Companies loaded | 15 | 10 | 5
 -- Leads loaded     | 10 |  5 | 5
--- Activities loaded|  6 |  0 | 0
+-- Activities loaded |  6 |  0 | 0
