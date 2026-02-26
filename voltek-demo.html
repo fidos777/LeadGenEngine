@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voltek C&I Command Center — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0A1628;
+  --surface: #0F1D33;
+  --surface2: #142340;
+  --border: #1E3065;
+  --amber: #f59e0b;
+  --amber-dim: #92400e;
+  --amber-glow: rgba(245,158,11,0.12);
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,0.15);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.15);
+  --yellow: #fbbf24;
+  --text: #e5e5e5;
+  --text-dim: #737373;
+  --text-faint: #404040;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── NAVIGATION ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  background: rgba(10,10,10,0.95);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: var(--amber);
+}
+
+.nav-sub {
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.nav-tab {
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+.nav-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--green);
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── MAIN LAYOUT ── */
+main {
+  margin-top: 56px;
+  min-height: calc(100vh - 56px);
+}
+
+/* ── SCREENS ── */
+.screen { display: none; padding: 32px; }
+.screen.active { display: block; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 3px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.page-subtitle {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-top: 6px;
+  letter-spacing: 0.5px;
+}
+
+/* ── KPI GRID ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--border);
+}
+
+.kpi-card.amber::before { background: var(--amber); }
+.kpi-card.green::before { background: var(--green); }
+.kpi-card.yellow::before { background: var(--yellow); }
+.kpi-card.red::before { background: var(--red); }
+
+.kpi-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.kpi-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  letter-spacing: 2px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.kpi-card.amber .kpi-value { color: var(--amber); }
+.kpi-card.green .kpi-value { color: var(--green); }
+
+.kpi-meta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.kpi-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  margin-top: 8px;
+}
+
+.kpi-change.up { color: var(--green); background: var(--green-dim); }
+.kpi-change.neutral { color: var(--yellow); background: rgba(251,191,36,0.1); }
+
+/* ── TWO COLUMN ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.three-col {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.panel-action {
+  font-size: 11px;
+  color: var(--amber);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+.panel-body { padding: 20px; }
+
+/* ── TABLE ── */
+.data-table { width: 100%; border-collapse: collapse; }
+
+.data-table th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.data-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+
+.data-table tr:hover td {
+  background: var(--surface2);
+  cursor: pointer;
+}
+
+/* ── SCORE BADGE ── */
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.score-badge.high { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.score-badge.med { background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.25); }
+.score-badge.low { background: rgba(115,115,115,0.1); color: var(--text-dim); border: 1px solid var(--border); }
+
+/* ── STATUS BADGE ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.status-badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+}
+
+.status-badge.hot { background: var(--amber-glow); color: var(--amber); }
+.status-badge.hot::before { background: var(--amber); }
+.status-badge.warm { background: rgba(251,191,36,0.1); color: var(--yellow); }
+.status-badge.warm::before { background: var(--yellow); }
+.status-badge.survey { background: var(--green-dim); color: var(--green); }
+.status-badge.survey::before { background: var(--green); }
+.status-badge.new { background: rgba(99,102,241,0.1); color: #818cf8; }
+.status-badge.new::before { background: #818cf8; }
+.status-badge.cold { background: rgba(115,115,115,0.1); color: var(--text-dim); }
+.status-badge.cold::before { background: var(--text-dim); }
+
+/* ── ATAP BADGE ── */
+.atap-pass { color: var(--green); font-size: 11px; }
+.atap-fail { color: var(--red); font-size: 11px; }
+.atap-note { color: var(--yellow); font-size: 11px; }
+
+/* ── PIPELINE FUNNEL ── */
+.funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.funnel-stage {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.funnel-bar-wrap {
+  flex: 1;
+  height: 28px;
+  background: var(--surface2);
+  position: relative;
+}
+
+.funnel-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-size: 11px;
+  color: var(--bg);
+  font-weight: 500;
+  transition: width 1s ease;
+}
+
+.funnel-stage-name {
+  width: 140px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.funnel-count {
+  width: 40px;
+  font-size: 13px;
+  color: var(--text);
+  text-align: right;
+}
+
+.f1 .funnel-bar { background: var(--amber); width: 100%; }
+.f2 .funnel-bar { background: #d97706; width: 78%; }
+.f3 .funnel-bar { background: #b45309; width: 42%; }
+.f4 .funnel-bar { background: #92400e; width: 22%; }
+.f5 .funnel-bar { background: #78350f; width: 10%; }
+
+/* ── ZONE MAP GRID ── */
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.zone-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.zone-card:hover {
+  border-color: var(--amber);
+  background: var(--amber-glow);
+}
+
+.zone-card.active {
+  border-color: var(--amber);
+  background: var(--amber-glow);
+}
+
+.zone-card.pending {
+  opacity: 0.5;
+}
+
+.zone-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.zone-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.zone-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.zone-pending-tag {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: var(--border);
+  padding: 2px 6px;
+}
+
+/* ── LEAD DETAIL ── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.detail-field {
+  background: var(--surface2);
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+
+.detail-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.detail-value.highlight { color: var(--amber); font-weight: 500; }
+.detail-value.green { color: var(--green); }
+
+/* ── ATAP CHECKLIST ── */
+.atap-list { list-style: none; }
+
+.atap-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.atap-item:last-child { border-bottom: none; }
+
+.atap-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 13px;
+}
+
+.atap-text {
+  flex: 1;
+}
+
+.atap-criterion {
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.atap-detail {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ── SCORE METER ── */
+.score-display {
+  text-align: center;
+  padding: 32px 0;
+}
+
+.score-number {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 96px;
+  letter-spacing: 4px;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.score-max {
+  font-size: 24px;
+  color: var(--text-dim);
+  font-family: 'Bebas Neue', sans-serif;
+}
+
+.score-tier {
+  margin-top: 8px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: var(--amber-glow);
+  display: inline-block;
+  padding: 4px 16px;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+
+.score-bars {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.score-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-bar-label {
+  width: 180px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+  letter-spacing: 0.5px;
+}
+
+.score-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface2);
+}
+
+.score-bar-fill {
+  height: 100%;
+  background: var(--amber);
+  transition: width 1.2s ease;
+}
+
+.score-bar-fill.partial { background: var(--yellow); }
+.score-bar-fill.low { background: var(--text-dim); }
+
+.score-bar-val {
+  width: 40px;
+  font-size: 11px;
+  color: var(--text);
+  text-align: right;
+}
+
+/* ── ACTIVITY TIMELINE ── */
+.timeline { list-style: none; }
+
+.timeline-item {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-item:last-child { border-bottom: none; }
+
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.timeline-dot.amber { background: var(--amber); }
+.timeline-dot.green { background: var(--green); }
+.timeline-dot.blue { background: #60a5fa; }
+.timeline-dot.dim { background: var(--text-dim); }
+
+.timeline-content {
+  flex: 1;
+}
+
+.timeline-action {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.timeline-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ── REVENUE PANEL ── */
+.revenue-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.revenue-row:last-child { border-bottom: none; }
+
+.revenue-label { font-size: 12px; color: var(--text-dim); }
+.revenue-amount { font-size: 14px; color: var(--amber); }
+.revenue-amount.green { color: var(--green); }
+
+.revenue-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--amber-glow);
+  border: 1px solid rgba(245,158,11,0.2);
+  margin-top: 12px;
+}
+
+.revenue-total-label {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.revenue-total-amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 2px;
+  color: var(--amber);
+}
+
+/* ── CALLER PANEL ── */
+.caller-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+}
+
+.call-target {
+  background: var(--surface2);
+  border: 1px solid var(--amber);
+  padding: 24px;
+  text-align: center;
+}
+
+.call-target-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.call-target-role {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.call-number {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 3px;
+  color: var(--amber);
+  margin-bottom: 20px;
+}
+
+.call-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.call-btn:hover { background: #d97706; }
+
+.script-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.script-tag {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 8px;
+}
+
+.script-text {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.8;
+}
+
+.objection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.objection-btn {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.objection-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-dim);
+}
+
+/* ── WEEKLY REPORT ── */
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.report-metric {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px;
+  text-align: center;
+}
+
+.report-metric-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.report-metric-val.green { color: var(--green); }
+
+.report-metric-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+/* ── INSIGHT BOX ── */
+.insight {
+  border-left: 3px solid var(--amber);
+  background: var(--amber-glow);
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.insight strong { color: var(--amber); }
+
+/* ── WATERMARK ── */
+.demo-badge {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  z-index: 99;
+}
+
+/* ── INTRO SCREEN ── */
+.intro-screen {
+  min-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px;
+  background: 
+    radial-gradient(ellipse at 20% 50%, rgba(245,158,11,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 50%, rgba(245,158,11,0.03) 0%, transparent 60%);
+}
+
+.intro-eyebrow {
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 24px;
+}
+
+.intro-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(64px, 10vw, 120px);
+  letter-spacing: 6px;
+  color: var(--text);
+  line-height: 0.9;
+  margin-bottom: 8px;
+}
+
+.intro-title span { color: var(--amber); }
+
+.intro-subtitle {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-dim);
+  max-width: 600px;
+  margin: 24px auto 48px;
+  line-height: 1.6;
+}
+
+.intro-stats {
+  display: flex;
+  gap: 64px;
+  margin-bottom: 48px;
+}
+
+.intro-stat-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.intro-stat-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.start-btn {
+  padding: 16px 48px;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 3px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.start-btn:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.breadcrumb-sep { color: var(--text-faint); }
+.breadcrumb-current { color: var(--text); }
+
+/* ── COMPANY NAME ── */
+.company-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.company-sector {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ── SCROLL ANIMATE ── */
+.fade-in {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .detail-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">VOLTEK</div>
+    <div class="nav-sub">C&I Command Center</div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showScreen('overview')">Overview</div>
+    <div class="nav-tab" onclick="showScreen('discovery')">Discovery</div>
+    <div class="nav-tab" onclick="showScreen('pipeline')">Pipeline</div>
+    <div class="nav-tab" onclick="showScreen('lead')">Lead Detail</div>
+    <div class="nav-tab" onclick="showScreen('caller')">Caller View</div>
+    <div class="nav-tab" onclick="showScreen('report')">Performance</div>
+  </div>
+  <div class="nav-status">
+    <div class="status-dot"></div>
+    Live — Selangor Zone Active
+  </div>
+</nav>
+
+<main>
+
+<!-- ─── SCREEN: OVERVIEW ─── -->
+<div class="screen active" id="screen-overview">
+  <div class="page-header">
+    <div class="page-title">Command Overview</div>
+    <div class="page-subtitle">Selangor Industrial Solar Pipeline · February 2026</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card amber">
+      <div class="kpi-label">Active Pipeline (kWp)</div>
+      <div class="kpi-value">2,840</div>
+      <div class="kpi-meta">Across 9 active deals</div>
+      <div class="kpi-change up">↑ 640 kWp this month</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Revenue In Play</div>
+      <div class="kpi-value">RM 284K</div>
+      <div class="kpi-meta">Weighted by close probability</div>
+      <div class="kpi-change up">↑ 3 new prospects this week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Factories Mapped</div>
+      <div class="kpi-value">161</div>
+      <div class="kpi-meta">6 of 15 Selangor zones</div>
+      <div class="kpi-change neutral">9 zones pending</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">ATAP Eligible</div>
+      <div class="kpi-value">94</div>
+      <div class="kpi-meta">58% of mapped universe</div>
+      <div class="kpi-change neutral">67 filtered out</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <!-- Priority Deals -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Priority Deals — This Week</div>
+        <div class="panel-action" onclick="showScreen('pipeline')">View all →</div>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>kWp</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Next Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="showScreen('lead')">
+              <td>
+                <div class="company-name">Mega Plastics Sdn Bhd</div>
+                <div class="company-sector">Shah Alam · Plastics</div>
+              </td>
+              <td>280</td>
+              <td><span class="score-badge high">82</span></td>
+              <td><span class="status-badge hot">Survey Ready</span></td>
+              <td style="color:var(--amber)">Book site visit</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="company-name">Klang Metal Works</div>
+                <div class="company-sector">Klang · Metal Fab</div>
+              </td>
+              <td>350</td>
+              <td><span class="score-badge high">78</span></td>
+              <td><span class="status-badge warm">Proposal Sent</span></td>
+              <td style="color:var(--yellow)">Follow up Tue</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="company-name">PJ Packaging Bhd</div>
+                <div class="company-sector">PJ · Packaging</div>
+              </td>
+              <td>220</td>
+              <td><span class="score-badge high">75</span></td>
+              <td><span class="status-badge warm">Appointment Set</span></td>
+              <td style="color:var(--yellow)">Site visit Mon</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="company-name">Subang Food Industries</div>
+                <div class="company-sector">Subang · Food Mfg</div>
+              </td>
+              <td>300</td>
+              <td><span class="score-badge med">68</span></td>
+              <td><span class="status-badge new">Contacted</span></td>
+              <td style="color:var(--text-dim)">Await callback</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="company-name">Shah Alam Plastics</div>
+                <div class="company-sector">Shah Alam · Plastics</div>
+              </td>
+              <td>260</td>
+              <td><span class="score-badge med">65</span></td>
+              <td><span class="status-badge new">Identified</span></td>
+              <td style="color:var(--text-dim)">Enrich & call</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pipeline Funnel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Conversion Funnel — Selangor</div>
+      </div>
+      <div class="panel-body">
+        <div class="funnel">
+          <div class="funnel-stage f1">
+            <div class="funnel-stage-name">Mapped</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar">161 factories</div>
+            </div>
+            <div class="funnel-count">161</div>
+          </div>
+          <div class="funnel-stage f2">
+            <div class="funnel-stage-name">ATAP Eligible</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar">94 qualified</div>
+            </div>
+            <div class="funnel-count">94</div>
+          </div>
+          <div class="funnel-stage f3">
+            <div class="funnel-stage-name">Scored &gt;65</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar">38 priority</div>
+            </div>
+            <div class="funnel-count">38</div>
+          </div>
+          <div class="funnel-stage f4">
+            <div class="funnel-stage-name">Appointments</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar">12 booked</div>
+            </div>
+            <div class="funnel-count">12</div>
+          </div>
+          <div class="funnel-stage f5">
+            <div class="funnel-stage-name">In Negotiation</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar">4 active</div>
+            </div>
+            <div class="funnel-count">4</div>
+          </div>
+        </div>
+
+        <div class="insight" style="margin-top:24px">
+          <strong>ATAP filter removed 42% of prospects</strong> before any site visit was wasted. 
+          67 companies failed eligibility screening — primarily multi-tenant structure (31) and 
+          low daytime consumption profile (22).
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN: DISCOVERY ─── -->
+<div class="screen" id="screen-discovery">
+  <div class="page-header">
+    <div class="page-title">Territory Discovery</div>
+    <div class="page-subtitle">Selangor Industrial Zone Mapping · 15 Target Zones</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card amber">
+      <div class="kpi-label">Factories Mapped</div>
+      <div class="kpi-value">161</div>
+      <div class="kpi-meta">Across 6 active zones</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">ATAP Pass Rate</div>
+      <div class="kpi-value">58%</div>
+      <div class="kpi-meta">94 eligible of 161 mapped</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Zones Completed</div>
+      <div class="kpi-value">6/15</div>
+      <div class="kpi-meta">9 zones pending</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Data Cost</div>
+      <div class="kpi-value">RM 9</div>
+      <div class="kpi-meta">≈RM 0.06 per factory</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Selangor Industrial Zones</div>
+      <div class="panel-action">+ Add Zone</div>
+    </div>
+    <div class="panel-body">
+      <div class="zone-grid">
+        <div class="zone-card active">
+          <div class="zone-name">Klang Industrial Belt</div>
+          <div class="zone-count">50</div>
+          <div class="zone-label">Factories mapped</div>
+          <div style="margin-top:12px; font-size:11px; color:var(--green)">✓ 31 ATAP eligible</div>
+        </div>
+        <div class="zone-card active">
+          <div class="zone-name">Shah Alam Sek. 23-27</div>
+          <div class="zone-count">38</div>
+          <div class="zone-label">Factories mapped</div>
+          <div style="margin-top:12px; font-size:11px; color:var(--green)">✓ 24 ATAP eligible</div>
+        </div>
+        <div class="zone-card active">
+          <div class="zone-name">Subang Industrial Park</div>
+          <div class="zone-count">28</div>
+          <div class="zone-label">Factories mapped</div>
+          <div style="margin-top:12px; font-size:11px; color:var(--green)">✓ 18 ATAP eligible</div>
+        </div>
+        <div class="zone-card active">
+          <div class="zone-name">Petaling Jaya (PJ)</div>
+          <div class="zone-count">22</div>
+          <div class="zone-label">Factories mapped</div>
+          <div style="margin-top:12px; font-size:11px; color:var(--green)">✓ 12 ATAP eligible</div>
+        </div>
+        <div class="zone-card active">
+          <div class="zone-name">Port Klang Corridor</div>
+          <div class="zone-count">15</div>
+          <div class="zone-label">Factories mapped</div>
+          <div style="margin-top:12px; font-size:11px; color:var(--green)">✓ 7 ATAP eligible</div>
+        </div>
+        <div class="zone-card active">
+          <div class="zone-name">Seri Kembangan</div>
+          <div class="zone-count">8</div>
+          <div class="zone-label">Factories mapped</div>
+          <div style="margin-top:12px; font-size:11px; color:var(--green)">✓ 2 ATAP eligible</div>
+        </div>
+        <div class="zone-card pending">
+          <div class="zone-pending-tag">Pending</div>
+          <div class="zone-name">Puchong Industrial</div>
+          <div class="zone-count">—</div>
+          <div class="zone-label">Est. 40-60 factories</div>
+        </div>
+        <div class="zone-card pending">
+          <div class="zone-pending-tag">Pending</div>
+          <div class="zone-name">Kapar / Meru</div>
+          <div class="zone-count">—</div>
+          <div class="zone-label">Est. 30-50 factories</div>
+        </div>
+        <div class="zone-card pending">
+          <div class="zone-pending-tag">Pending</div>
+          <div class="zone-name">Rawang Industrial</div>
+          <div class="zone-count">—</div>
+          <div class="zone-label">Est. 20-35 factories</div>
+        </div>
+      </div>
+
+      <div class="insight" style="margin-top:20px">
+        <strong>9 zones pending mapping.</strong> Completing the full 15-zone Selangor survey 
+        will yield an estimated <strong>380-500 total factories</strong>, of which ~220-290 are 
+        projected to pass ATAP eligibility screening. This represents your full Selangor SOM.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN: PIPELINE ─── -->
+<div class="screen" id="screen-pipeline">
+  <div class="page-header">
+    <div class="page-title">Active Pipeline</div>
+    <div class="page-subtitle">94 ATAP-Eligible Prospects · 38 Priority Scored</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">All Priority Prospects (Score &gt;65)</div>
+      <div style="display:flex;gap:8px">
+        <div style="font-size:11px;color:var(--text-dim);padding:4px 12px;border:1px solid var(--border)">Filter: All Stages</div>
+        <div style="font-size:11px;color:var(--text-dim);padding:4px 12px;border:1px solid var(--border)">Sort: Score ↓</div>
+      </div>
+    </div>
+    <div style="padding:0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Zone</th>
+            <th>kWp Est.</th>
+            <th>Composite Score</th>
+            <th>ATAP</th>
+            <th>Authority</th>
+            <th>Stage</th>
+            <th>Est. Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr onclick="showScreen('lead')" style="background:rgba(245,158,11,0.04)">
+            <td><div class="company-name">Mega Plastics Industries</div><div class="company-sector">Plastics Mfg</div></td>
+            <td>Shah Alam</td><td>280</td>
+            <td><span class="score-badge high">82 / 100</span></td>
+            <td><span class="atap-pass">✓ PASS</span></td>
+            <td style="color:var(--green)">Owner-Direct</td>
+            <td><span class="status-badge hot">Survey Ready</span></td>
+            <td style="color:var(--amber)">RM 31,000</td>
+          </tr>
+          <tr>
+            <td><div class="company-name">Klang Metal Works</div><div class="company-sector">Metal Fabrication</div></td>
+            <td>Klang</td><td>350</td>
+            <td><span class="score-badge high">78 / 100</span></td>
+            <td><span class="atap-pass">✓ PASS</span></td>
+            <td style="color:var(--green)">Owner-Direct</td>
+            <td><span class="status-badge warm">Proposal Sent</span></td>
+            <td style="color:var(--amber)">RM 38,500</td>
+          </tr>
+          <tr>
+            <td><div class="company-name">PJ Packaging Bhd</div><div class="company-sector">Packaging</div></td>
+            <td>PJ</td><td>220</td>
+            <td><span class="score-badge high">75 / 100</span></td>
+            <td><span class="atap-pass">✓ PASS</span></td>
+            <td style="color:var(--green)">Owner-Direct</td>
+            <td><span class="status-badge warm">Appointment</span></td>
+            <td style="color:var(--amber)">RM 24,200</td>
+          </tr>
+          <tr>
+            <td><div class="company-name">Subang Food Industries</div><div class="company-sector">Food Mfg</div></td>
+            <td>Subang</td><td>300</td>
+            <td><span class="score-badge med">68 / 100</span></td>
+            <td><span class="atap-pass">✓ PASS</span></td>
+            <td style="color:var(--yellow)">GM / Manager</td>
+            <td><span class="status-badge new">Contacted</span></td>
+            <td style="color:var(--text-dim)">RM 33,000</td>
+          </tr>
+          <tr>
+            <td><div class="company-name">Shah Alam Plastics</div><div class="company-sector">Plastics Mfg</div></td>
+            <td>Shah Alam</td><td>260</td>
+            <td><span class="score-badge med">65 / 100</span></td>
+            <td><span class="atap-pass">✓ PASS</span></td>
+            <td style="color:var(--yellow)">GM / Manager</td>
+            <td><span class="status-badge new">Identified</span></td>
+            <td style="color:var(--text-dim)">RM 28,600</td>
+          </tr>
+          <tr style="opacity:0.6">
+            <td><div class="company-name">Klang Logistics Hub</div><div class="company-sector">Warehouse</div></td>
+            <td>Klang</td><td>—</td>
+            <td><span class="score-badge low">41 / 100</span></td>
+            <td><span class="atap-fail">✗ FAIL</span></td>
+            <td style="color:var(--text-dim)">Unknown</td>
+            <td><span class="status-badge cold">Disqualified</span></td>
+            <td style="color:var(--text-dim)">—</td>
+          </tr>
+          <tr style="opacity:0.6">
+            <td><div class="company-name">Multi-Tenant Plaza</div><div class="company-sector">Mixed Commercial</div></td>
+            <td>PJ</td><td>—</td>
+            <td><span class="score-badge low">29 / 100</span></td>
+            <td><span class="atap-fail">✗ MULTI-TENANT</span></td>
+            <td style="color:var(--text-dim)">Unknown</td>
+            <td><span class="status-badge cold">Disqualified</span></td>
+            <td style="color:var(--text-dim)">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Disqualified before wasting a site visit:</strong> 67 companies removed through ATAP 
+    screening. Primary reasons: multi-tenant structure (31), night-dominant operations (22), MD 
+    below minimum viable threshold (14). Each avoided site visit saves Voltek approximately 
+    <strong>RM 8,000–15,000</strong> in engineering time and CAS fees.
+  </div>
+</div>
+
+<!-- ─── SCREEN: LEAD DETAIL ─── -->
+<div class="screen" id="screen-lead">
+  <div class="breadcrumb">
+    <span onclick="showScreen('pipeline')" style="cursor:pointer;color:var(--amber)">Pipeline</span>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-current">Mega Plastics Industries Sdn Bhd</span>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px">
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--text)">
+        Mega Plastics Industries Sdn Bhd
+      </div>
+      <div style="color:var(--text-dim);font-size:12px;margin-top:4px">
+        Shah Alam, Selangor (Seksyen 26) · Plastics Manufacturing · Owner-Operated
+      </div>
+    </div>
+    <span class="status-badge hot" style="font-size:12px;padding:8px 16px">Survey Ready</span>
+  </div>
+
+  <div class="detail-grid">
+    <div class="detail-field">
+      <div class="detail-label">Decision Maker</div>
+      <div class="detail-value highlight">En. Ahmad Razak</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Director · Confirmed Owner</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Direct Mobile</div>
+      <div class="detail-value highlight">+60 12-XXX XXXX</div>
+      <div style="font-size:11px;color:var(--green);margin-top:4px">✓ Verified</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">TNB Bill Band</div>
+      <div class="detail-value highlight">RM 35,000–45,000/mth</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">C1 Non-Domestic</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Estimated MD</div>
+      <div class="detail-value">350 kW</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Within 1MW ATAP cap</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Operating Hours</div>
+      <div class="detail-value green">Day-dominant</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">7am–6pm · High self-consumption</div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Roof Status</div>
+      <div class="detail-value green">Metal deck · Owner</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">No landlord consent needed</div>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <!-- ATAP + Score -->
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">ATAP Eligibility Check</div>
+          <div style="font-size:11px;color:var(--green);font-weight:500">✓ ELIGIBLE</div>
+        </div>
+        <div class="panel-body" style="padding:0 20px">
+          <ul class="atap-list">
+            <li class="atap-item">
+              <div class="atap-icon" style="color:var(--green)">✓</div>
+              <div class="atap-text">
+                <div class="atap-criterion">Single-tenant premise</div>
+                <div class="atap-detail">Owner-occupied factory, single TNB account</div>
+              </div>
+            </li>
+            <li class="atap-item">
+              <div class="atap-icon" style="color:var(--green)">✓</div>
+              <div class="atap-text">
+                <div class="atap-criterion">Maximum Demand &lt; 1MW</div>
+                <div class="atap-detail">Est. 350 kW — well within cap</div>
+              </div>
+            </li>
+            <li class="atap-item">
+              <div class="atap-icon" style="color:var(--green)">✓</div>
+              <div class="atap-text">
+                <div class="atap-criterion">Ownership / TNB consent</div>
+                <div class="atap-detail">Owner-occupied, no landlord approval needed</div>
+              </div>
+            </li>
+            <li class="atap-item">
+              <div class="atap-icon" style="color:var(--yellow)">◎</div>
+              <div class="atap-text">
+                <div class="atap-criterion">Operating hours</div>
+                <div class="atap-detail">Day-dominant (7am–6pm) — optimal for ATAP</div>
+              </div>
+            </li>
+            <li class="atap-item">
+              <div class="atap-icon" style="color:var(--green)">✓</div>
+              <div class="atap-text">
+                <div class="atap-criterion">Sector eligibility</div>
+                <div class="atap-detail">Manufacturing — no exclusion under ATAP</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Revenue Impact -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Revenue Impact</div>
+        </div>
+        <div class="panel-body">
+          <div class="revenue-row">
+            <div class="revenue-label">Appointment fee</div>
+            <div class="revenue-amount">RM 1,200</div>
+          </div>
+          <div class="revenue-row">
+            <div class="revenue-label">Site survey package</div>
+            <div class="revenue-amount">RM 3,000</div>
+          </div>
+          <div class="revenue-row">
+            <div class="revenue-label">Success fee (2% × RM 560k)</div>
+            <div class="revenue-amount green">RM 11,200</div>
+          </div>
+          <div class="revenue-total">
+            <div class="revenue-total-label">Total if closed</div>
+            <div class="revenue-total-amount">RM 15,400</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Score + Timeline -->
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">ATAP Fit Score</div>
+        </div>
+        <div class="panel-body">
+          <div class="score-display">
+            <div class="score-number">82<span class="score-max">/100</span></div>
+            <div class="score-tier">Tier A · Immediate Approach</div>
+          </div>
+          <div class="score-bars">
+            <div class="score-bar-row">
+              <div class="score-bar-label">Energy Economics</div>
+              <div class="score-bar-track">
+                <div class="score-bar-fill" style="width:90%"></div>
+              </div>
+              <div class="score-bar-val">27/30</div>
+            </div>
+            <div class="score-bar-row">
+              <div class="score-bar-label">Operational Suitability</div>
+              <div class="score-bar-track">
+                <div class="score-bar-fill" style="width:85%"></div>
+              </div>
+              <div class="score-bar-val">17/20</div>
+            </div>
+            <div class="score-bar-row">
+              <div class="score-bar-label">Asset Control</div>
+              <div class="score-bar-track">
+                <div class="score-bar-fill" style="width:100%"></div>
+              </div>
+              <div class="score-bar-val">20/20</div>
+            </div>
+            <div class="score-bar-row">
+              <div class="score-bar-label">Decision-Maker Access</div>
+              <div class="score-bar-track">
+                <div class="score-bar-fill partial" style="width:73%"></div>
+              </div>
+              <div class="score-bar-val">11/15</div>
+            </div>
+            <div class="score-bar-row">
+              <div class="score-bar-label">Trigger Signals</div>
+              <div class="score-bar-track">
+                <div class="score-bar-fill partial" style="width:47%"></div>
+              </div>
+              <div class="score-bar-val">7/15</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Activity Timeline</div>
+          <div class="panel-action">+ Log Activity</div>
+        </div>
+        <div class="panel-body" style="padding:0 20px">
+          <ul class="timeline">
+            <li class="timeline-item">
+              <div class="timeline-dot amber"></div>
+              <div class="timeline-content">
+                <div class="timeline-action">Pre-survey report delivered to En. Ahmad Razak</div>
+                <div class="timeline-meta">Feb 24 · Prospek Intelligence Engine · PDF sent via email</div>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <div class="timeline-dot green"></div>
+              <div class="timeline-content">
+                <div class="timeline-action">Appointment confirmed — site visit approved</div>
+                <div class="timeline-meta">Feb 22 · Caller: Azrul · Duration: 12 min</div>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <div class="timeline-dot blue"></div>
+              <div class="timeline-content">
+                <div class="timeline-action">Call logged — interest confirmed, requesting report first</div>
+                <div class="timeline-meta">Feb 20 · Caller: Azrul · Objection: "Send me the analysis"</div>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <div class="timeline-dot dim"></div>
+              <div class="timeline-content">
+                <div class="timeline-action">First contact attempted — reached GM, referred to Director</div>
+                <div class="timeline-meta">Feb 18 · Caller: Azrul · Authority: Owner confirmed</div>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <div class="timeline-dot dim"></div>
+              <div class="timeline-content">
+                <div class="timeline-action">Lead identified and scored via Apify + enrichment</div>
+                <div class="timeline-meta">Feb 15 · System · Score: 82 · Zone: Shah Alam</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN: CALLER VIEW ─── -->
+<div class="screen" id="screen-caller">
+  <div class="page-header">
+    <div class="page-title">Caller Interface</div>
+    <div class="page-subtitle">Today's Priority Call List · 8 targets assigned</div>
+  </div>
+
+  <div class="caller-grid">
+    <!-- Call Target -->
+    <div>
+      <div class="call-target">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);margin-bottom:16px">Current Target</div>
+        <div class="call-target-name">En. Razak bin Hassan</div>
+        <div class="call-target-role">Director · Owner-Confirmed</div>
+        <div class="call-number">+60 12-334 5678</div>
+        <button class="call-btn">▶ INITIATE CALL</button>
+        <div style="margin-top:16px; padding:12px; background:var(--bg); border:1px solid var(--border)">
+          <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Company Intelligence</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            Syarikat Maju Sdn Bhd<br>
+            <span style="color:var(--text-dim)">Metal Fabrication · Klang</span><br>
+            Score: <span style="color:var(--amber)">78/100</span> · Tier A<br>
+            Est. kWp: <span style="color:var(--text)">340 kWp</span><br>
+            ATAP: <span style="color:var(--green)">✓ Eligible</span><br>
+            Bill Band: <span style="color:var(--text)">RM 42k/mth</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Objection Log -->
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-header">
+          <div class="panel-title">Log Objection</div>
+        </div>
+        <div class="panel-body">
+          <div class="objection-grid">
+            <button class="objection-btn">Capex too high</button>
+            <button class="objection-btn">Moving factory</button>
+            <button class="objection-btn">Board approval</button>
+            <button class="objection-btn">Already evaluated</button>
+            <button class="objection-btn">Roof too old</button>
+            <button class="objection-btn">Tenant / no authority</button>
+            <button class="objection-btn">Try next quarter</button>
+            <button class="objection-btn">Not interested</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call Script -->
+    <div>
+      <div class="script-card">
+        <div class="script-tag">Opening (0–30 sec)</div>
+        <div class="script-text">
+          "Selamat pagi Encik Razak, nama saya [Nama] dari Voltek Energy.<br><br>
+          Kami tengah buat penilaian potensi solar untuk kilang-kilang di kawasan Klang dan Shah Alam — 
+          dan kilang Encik ada dalam senarai kami berdasarkan profil penggunaan tenaga.<br><br>
+          Boleh saya minta 3 minit Encik untuk explain apa yang kami dah analysis?"
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-tag">ATAP Value Hook (30–90 sec)</div>
+        <div class="script-text">
+          "Ramai kilang yang kami jumpa tak sedar yang sistem solar yang oversized sebenarnya boleh 
+          rugi bawah program Solar ATAP yang baru mulai January ni.<br><br>
+          Kami dah analysis kawasan ini — <strong>kilang Encik nampak memang ngam</strong> untuk dapat 
+          ROI yang baik, tapi kena size dengan betul ikut MD kilang Encik.<br><br>
+          Kami ada sediakan satu 1-page Energy Snapshot percuma — boleh email sekarang untuk Encik 
+          semak dulu sebelum kita schedule site visit."
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-tag">Qualifying Questions</div>
+        <div class="script-text">
+          1. Kilang Encik operate pukul berapa sampai berapa? (siang atau ada shift malam?)<br>
+          2. Encik yang punya bangunan ni, atau sewa dari owner lain?<br>
+          3. Bil TNB sebulan dalam range berapa — lebih kurang RM30k atau RM50k?<br>
+          4. Ada rancang expansion atau renovation untuk kilang dalam 12 bulan ni?
+        </div>
+      </div>
+
+      <div class="script-card" style="border-color:var(--green)">
+        <div class="script-tag" style="color:var(--green)">Close / Next Step</div>
+        <div class="script-text">
+          "OK, based on what you've shared — kilang Encik highly eligible for Solar ATAP.<br><br>
+          Boleh kita schedule site visit minggu ni atau minggu depan? Engineer kami akan datang 
+          tengok roof condition dan verify MD — takkan ambil lebih dari sejam.<br><br>
+          Encik available hari Selasa atau Rabu pagi?"
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCREEN: PERFORMANCE ─── -->
+<div class="screen" id="screen-report">
+  <div class="page-header">
+    <div class="page-title">Weekly Performance</div>
+    <div class="page-subtitle">Week ending Feb 28, 2026 · Voltek C&I Division</div>
+  </div>
+
+  <div class="report-grid">
+    <div class="report-metric">
+      <div class="report-metric-val">6</div>
+      <div class="report-metric-label">Appointments Booked</div>
+    </div>
+    <div class="report-metric">
+      <div class="report-metric-val green">3</div>
+      <div class="report-metric-label">Surveys Completed</div>
+    </div>
+    <div class="report-metric">
+      <div class="report-metric-val">50%</div>
+      <div class="report-metric-label">Appt → Survey Rate</div>
+    </div>
+    <div class="report-metric">
+      <div class="report-metric-val">38</div>
+      <div class="report-metric-label">Calls Made</div>
+    </div>
+    <div class="report-metric">
+      <div class="report-metric-val green">16%</div>
+      <div class="report-metric-label">Call → Appt Rate</div>
+    </div>
+    <div class="report-metric">
+      <div class="report-metric-val">840</div>
+      <div class="report-metric-label">kWp in Pipeline</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Top Objections This Week</div>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <table class="data-table">
+          <thead><tr><th>Objection</th><th>Count</th><th>Recovery Rate</th></tr></thead>
+          <tbody>
+            <tr><td>Capex tight / budget freeze</td><td>8</td><td style="color:var(--yellow)">37%</td></tr>
+            <tr><td>Need HQ / board approval</td><td>5</td><td style="color:var(--yellow)">40%</td></tr>
+            <tr><td>Already evaluated before</td><td>4</td><td style="color:var(--red)">0%</td></tr>
+            <tr><td>Roof old / needs repair</td><td>3</td><td style="color:var(--amber)">66%</td></tr>
+            <tr><td>Moving factory next year</td><td>2</td><td style="color:var(--red)">0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Milestone Revenue (This Month)</div>
+      </div>
+      <div class="panel-body">
+        <div class="revenue-row">
+          <div class="revenue-label">Appointments confirmed (6 × RM1,200)</div>
+          <div class="revenue-amount">RM 7,200</div>
+        </div>
+        <div class="revenue-row">
+          <div class="revenue-label">Survey packages (3 × RM3,000)</div>
+          <div class="revenue-amount">RM 9,000</div>
+        </div>
+        <div class="revenue-row">
+          <div class="revenue-label">Pre-survey reports sold (4 × RM1,200)</div>
+          <div class="revenue-amount">RM 4,800</div>
+        </div>
+        <div class="revenue-row">
+          <div class="revenue-label">Pipeline success fees (projected)</div>
+          <div class="revenue-amount green">RM 62,000</div>
+        </div>
+        <div class="revenue-total">
+          <div class="revenue-total-label">Month Total (incl. projected)</div>
+          <div class="revenue-total-amount">RM 83,000</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Pattern identified after 38 calls:</strong> "Already evaluated before" objection has 0% 
+    recovery rate — these prospects should be removed from the priority list and rescheduled for 
+    12-month re-contact. "Capex tight" has 37% recovery — these respond well to PPA framing. 
+    Recommended script adjustment for Week 2: lead with PPA option for manufacturing sector prospects.
+  </div>
+</div>
+
+</main>
+
+<div class="demo-badge">Demo Mode · Prospek.my</div>
+
+<script>
+function showScreen(id) {
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  
+  // Show target
+  document.getElementById('screen-' + id).classList.add('active');
+  
+  // Activate nav tab
+  const tabs = ['overview','discovery','pipeline','lead','caller','report'];
+  const idx = tabs.indexOf(id);
+  if (idx >= 0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  
+  // Scroll to top
+  window.scrollTo(0,0);
+}
+
+// Keyboard shortcuts for demo flow
+document.addEventListener('keydown', function(e) {
+  const screens = ['overview','discovery','pipeline','lead','caller','report'];
+  const current = document.querySelector('.nav-tab.active');
+  const tabs = Array.from(document.querySelectorAll('.nav-tab'));
+  const idx = tabs.indexOf(current);
+  
+  if (e.key === 'ArrowRight' && idx < screens.length - 1) showScreen(screens[idx + 1]);
+  if (e.key === 'ArrowLeft' && idx > 0) showScreen(screens[idx - 1]);
+});
+
+// Animate score bars on lead detail view
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+});
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
