@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { scoreProspect } from "@/lib/scoring/solar";
+
+// Derive score band from priority_score
+function getScoreBand(priorityScore: number): "A" | "B" | "Warm" | "Park" {
+  if (priorityScore >= 80) return "A";
+  if (priorityScore >= 60) return "B";
+  if (priorityScore >= 40) return "Warm";
+  return "Park";
+}
 
 /**
  * POST /api/v1/leads/intake
@@ -204,6 +213,47 @@ async function createLeadAndContact(
       email: details.email,
     },
   });
+
+  // 5. Persist initial score snapshot (non-fatal)
+  try {
+    const { data: company } = await supabase
+      .from("companies")
+      .select(
+        "id, sector, zone, estimated_md_kw, tenant_structure, operating_hours, estimated_roof_sqft, tnb_bill_band, ownership_status"
+      )
+      .eq("id", companyId)
+      .single();
+
+    if (company) {
+      const scoringInput = {
+        sector: company.sector ?? null,
+        zone: company.zone ?? null,
+        estimated_md_kw: company.estimated_md_kw ?? null,
+        tenant_structure: company.tenant_structure ?? null,
+        operating_hours: company.operating_hours ?? null,
+        estimated_roof_sqft: company.estimated_roof_sqft ?? null,
+        tnb_bill_band: company.tnb_bill_band ?? null,
+        ownership_status: company.ownership_status ?? null,
+      };
+
+      const result = scoreProspect(scoringInput);
+      const scoreBand = getScoreBand(result.score.priority_score);
+
+      await supabase.from("lead_score_history").insert({
+        lead_id: lead.id,
+        company_id: companyId,
+        fit_score: result.score.priority_score,
+        score_band: scoreBand,
+        atap_eligible: result.eligibility.eligible,
+        atap_fail_reason: result.eligibility.disqualify_reasons.join("; ") || null,
+        trigger_event: "lead_created",
+        company_snapshot: company,
+      });
+    }
+  } catch {
+    // Non-fatal: don't fail the request if scoring fails
+    console.error("Failed to persist score snapshot for intake lead");
+  }
 
   // Record rate-limit
   recordSubmission(ip);

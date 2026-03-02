@@ -3,8 +3,16 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { canAccess } from "@/lib/auth/permissions";
 import { getUserRoleUnsafe } from "@/lib/auth/getUserRole";
 import { getAuthContext } from "@/lib/auth/getAuthContext";
-import { calculateSolarScore } from "@/lib/scoring/solar";
+import { calculateSolarScore, scoreProspect } from "@/lib/scoring/solar";
 import { LEAD_STATUSES, type LeadStatus } from "@/lib/leads/status";
+
+// Derive score band from priority_score
+function getScoreBand(priorityScore: number): "A" | "B" | "Warm" | "Park" {
+  if (priorityScore >= 80) return "A";
+  if (priorityScore >= 60) return "B";
+  if (priorityScore >= 40) return "Warm";
+  return "Park";
+}
 
 export async function GET(req: NextRequest) {
   const role = await getUserRoleUnsafe();
@@ -168,6 +176,52 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Persist initial score snapshot for solar leads
+  if (opportunity_type === "solar" && data?.id) {
+    try {
+      // Fetch company data for scoring
+      const { data: company } = await supabase
+        .from("companies")
+        .select(
+          "id, sector, zone, estimated_md_kw, tenant_structure, operating_hours, estimated_roof_sqft, tnb_bill_band, ownership_status"
+        )
+        .eq("id", company_id)
+        .single();
+
+      if (company) {
+        const scoringInput = {
+          sector: company.sector ?? null,
+          zone: company.zone ?? null,
+          estimated_md_kw: company.estimated_md_kw ?? null,
+          tenant_structure: company.tenant_structure ?? null,
+          operating_hours: company.operating_hours ?? null,
+          estimated_roof_sqft: company.estimated_roof_sqft ?? null,
+          tnb_bill_band: company.tnb_bill_band ?? null,
+          ownership_status: company.ownership_status ?? null,
+        };
+
+        const result = scoreProspect(scoringInput);
+        const scoreBand = getScoreBand(result.score.priority_score);
+
+        // Insert score history (non-fatal on error)
+        await supabase.from("lead_score_history").insert({
+          lead_id: data.id,
+          company_id: company_id,
+          fit_score: result.score.priority_score,
+          score_band: scoreBand,
+          atap_eligible: result.eligibility.eligible,
+          atap_fail_reason: result.eligibility.disqualify_reasons.join("; ") || null,
+          trigger_event: "lead_created",
+          scored_by: auth.userId,
+          company_snapshot: company,
+        });
+      }
+    } catch {
+      // Non-fatal: log but don't fail the request
+      console.error("Failed to persist score snapshot");
+    }
   }
 
   return NextResponse.json(data);
