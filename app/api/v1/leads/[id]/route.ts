@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseAdminClient,
+} from "@/lib/supabase/server";
 import { canAccess } from "@/lib/auth/permissions";
 import { getUserRoleUnsafe } from "@/lib/auth/getUserRole";
 import { getAuthContext } from "@/lib/auth/getAuthContext";
@@ -208,7 +211,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { id } = await params;
   const body = await req.json();
 

@@ -9,7 +9,13 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function getEnv(name: string): string | undefined {
+  return process.env[name];
+}
+
 export const ENV = {
   SUPABASE_URL: requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
   SUPABASE_ANON_KEY: requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  // Server-side only - required for admin/write operations
+  SUPABASE_SERVICE_ROLE_KEY: getEnv("SUPABASE_SERVICE_ROLE_KEY"),
 } as const;

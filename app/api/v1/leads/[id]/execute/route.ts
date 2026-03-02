@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/getAuthContext";
 import { canAccess } from "@/lib/auth/permissions";
 import { canTransition, type LeadStatus } from "@/lib/leads/transitions";
@@ -42,7 +42,7 @@ export async function POST(
     );
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   // Pre-validate transition at API level (DB also enforces)
   if (body.new_status) {
