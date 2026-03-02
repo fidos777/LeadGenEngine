@@ -109,6 +109,55 @@ MARGIN = 20 * mm
 USABLE_W = PAGE_W - 2 * MARGIN
 
 
+# ─── Coordinate Validation ───
+
+# Peninsular Malaysia bounding box (generous — covers all states)
+# Selangor tighter box commented for reference: (2.85, 100.8, 3.55, 101.85)
+PENINSULAR_MY_BOUNDS = {
+    "lat_min": 1.2,   # south — Johor tip
+    "lat_max": 6.8,   # north — Perlis
+    "lng_min": 99.5,   # west — Langkawi
+    "lng_max": 104.5,  # east — Kelantan coast
+}
+
+# Selangor-specific bounds for pilot phase
+SELANGOR_BOUNDS = {
+    "lat_min": 2.85,
+    "lat_max": 3.55,
+    "lng_min": 100.80,
+    "lng_max": 101.85,
+}
+
+
+def validate_coordinates(lat: float, lng: float,
+                         strict: bool = False) -> tuple[bool, str]:
+    """Validate that coordinates fall within expected geographic bounds.
+
+    Args:
+        lat/lng: Facility coordinates.
+        strict: If True, enforce Selangor-only bounds (pilot phase).
+                If False, accept anywhere in Peninsular Malaysia.
+
+    Returns:
+        (is_valid, message) tuple.
+    """
+    bounds = SELANGOR_BOUNDS if strict else PENINSULAR_MY_BOUNDS
+    region = "Selangor" if strict else "Peninsular Malaysia"
+
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+        return False, f"Coordinates out of global range: {lat}, {lng}"
+
+    if not (bounds["lat_min"] <= lat <= bounds["lat_max"] and
+            bounds["lng_min"] <= lng <= bounds["lng_max"]):
+        return False, (
+            f"Coordinates ({lat}, {lng}) fall outside Selangor pilot zone. "
+            f"Verify the google_maps_url in the companies table. "
+            f"For non-Selangor runs, set strict=False in build_dossier()."
+        )
+
+    return True, "OK"
+
+
 # ─── Satellite Image & Roof Overlay ───
 
 def fetch_satellite_image(lat: float, lng: float, api_key: str,
@@ -366,7 +415,7 @@ def build_cashflow_drawing(p):
     annual_savings = p["annual_gen_kwh"] * p["self_consumption_pct"] / 100 * p["blended_tariff"] + \
                      p["annual_gen_kwh"] * (1 - p["self_consumption_pct"] / 100) * p["smp_floor"]
     capex = p["capex_mid"]
-    degradation = 0.005  # 0.5%/yr
+    degradation = p.get("degradation", 0.005)
 
     points = []
     cumulative = -capex
@@ -1339,13 +1388,20 @@ def section_financial(story, p):
     story.append(Paragraph("Financial Projection", S["h2"]))
 
     story.append(Paragraph("CAPEX Estimate", S["h3"]))
+    cas_fee = p.get("cas_fee", 5000)
+    struct_low = p.get("structural_low", 3000)
+    struct_high = p.get("structural_high", 8000)
+    pv_low = p["capex_low"] - cas_fee - struct_low
+    pv_high = p["capex_high"] - cas_fee - struct_high
     capex_data = [
         ["Component", "Rate", "Amount"],
         [f"Solar PV system ({p['size_kwp']} kWp)",
          f"RM {p['capex_per_kwp_low']:,}–{p['capex_per_kwp_high']:,}/kWp",
-         f"RM {p['capex_low'] - 8000:,} – {p['capex_high'] - 13000:,}"],
-        ["CAS fee (>180-425 kW band)", "GP/ST/No.60/2025 schedule", "RM 5,000"],
-        ["Structural roof assessment", "Subject to roof condition", "RM 3,000 – 8,000"],
+         f"RM {pv_low:,} – {pv_high:,}"],
+        ["CAS fee (>180-425 kW band)", "GP/ST/No.60/2025 schedule",
+         f"RM {cas_fee:,}"],
+        ["Structural roof assessment", "Subject to roof condition",
+         f"RM {struct_low:,} – {struct_high:,}"],
         ["Total estimated CAPEX", "", f"RM {p['capex_low']:,} – {p['capex_high']:,}"],
     ]
     t = make_table(capex_data, [50 * mm, 40 * mm, USABLE_W - 90 * mm], total_row=True)
@@ -1404,12 +1460,13 @@ def section_cashflow(story, p):
     story.append(build_cashflow_drawing(p))
     story.append(Spacer(1, 8))
 
+    deg = p.get("degradation", 0.005)
     annual = p["annual_gen_kwh"] * p["self_consumption_pct"] / 100 * p["blended_tariff"] + \
              p["annual_gen_kwh"] * (1 - p["self_consumption_pct"] / 100) * p["smp_floor"]
-    cumulative_25 = sum(annual * (1 - 0.005) ** yr for yr in range(25)) - p["capex_mid"]
+    cumulative_25 = sum(annual * (1 - deg) ** yr for yr in range(25)) - p["capex_mid"]
 
     story.append(Paragraph(
-        f"Over 25 years with 0.5% annual degradation, cumulative net benefit reaches "
+        f"Over 25 years with {deg*100:.1f}% annual degradation, cumulative net benefit reaches "
         f"approximately RM {cumulative_25/1000:,.0f}k after midpoint CAPEX recovery.",
         S["body"],
     ))
@@ -1715,6 +1772,12 @@ def section_disclaimer(story, p, brand_footer):
         ParagraphStyle("disclaimer", fontName="Helvetica", fontSize=8,
                        leading=11, textColor=GRAY_400, spaceAfter=8),
     ))
+    story.append(Paragraph(
+        f"Financial assumptions: v{p.get('assumptions_version', 'unknown')} "
+        f"(effective {p.get('assumptions_date', 'N/A')})",
+        ParagraphStyle("assumptions_ver", fontName="Helvetica", fontSize=7,
+                       leading=10, textColor=GRAY_400, spaceAfter=4),
+    ))
     story.append(Paragraph(f"{brand_footer} | Confidential", S["footer"]))
 
 
@@ -1756,6 +1819,46 @@ def build_dossier(output_path: str, tier: str = "premium",
     else:
         print("[SMP] No history data — using default floor RM 0.20/kWh")
 
+    # ─── Load financial assumptions ───
+    assumptions_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "assumptions", "v1.json"
+    )
+    try:
+        with open(assumptions_path) as f:
+            assumptions = json.load(f)
+        print(f"[ASSUMPTIONS] Loaded v{assumptions['version']} "
+              f"(effective {assumptions['effective_date']})")
+    except FileNotFoundError:
+        print(f"[WARN] Assumptions file not found: {assumptions_path} — using PROSPECT defaults")
+        assumptions = None
+    except json.JSONDecodeError as e:
+        print(f"[WARN] Invalid assumptions JSON: {e} — using PROSPECT defaults")
+        assumptions = None
+
+    # Override PROSPECT with versioned assumptions
+    if assumptions:
+        p["capex_per_kwp_low"] = assumptions["capex_per_kwp_rm_low"]
+        p["capex_per_kwp_high"] = assumptions["capex_per_kwp_rm_high"]
+        p["degradation"] = assumptions["degradation_annual_pct"] / 100  # 0.5 → 0.005
+        p["cas_fee"] = assumptions["cas_fee_rm"]
+        p["structural_low"] = assumptions["structural_assessment_low_rm"]
+        p["structural_high"] = assumptions["structural_assessment_high_rm"]
+        # Recalculate CAPEX range from assumptions
+        pv_cost_low = p["size_kwp"] * assumptions["capex_per_kwp_rm_low"]
+        pv_cost_high = p["size_kwp"] * assumptions["capex_per_kwp_rm_high"]
+        p["capex_low"] = pv_cost_low + assumptions["cas_fee_rm"] + assumptions["structural_assessment_low_rm"]
+        p["capex_high"] = pv_cost_high + assumptions["cas_fee_rm"] + assumptions["structural_assessment_high_rm"]
+        p["capex_mid"] = (p["capex_low"] + p["capex_high"]) // 2
+        p["assumptions_version"] = assumptions["version"]
+        p["assumptions_date"] = assumptions["effective_date"]
+    else:
+        p["degradation"] = 0.005
+        p["cas_fee"] = 5000
+        p["structural_low"] = 3000
+        p["structural_high"] = 8000
+        p["assumptions_version"] = "unknown"
+        p["assumptions_date"] = "N/A"
+
     brand_name = white_label or "POWERROOF"
     brand_footer = (
         f"{white_label} | Powered by PowerRoof.my"
@@ -1769,8 +1872,16 @@ def build_dossier(output_path: str, tier: str = "premium",
     temp_files = []
 
     if tier == "premium" and lat and lng and api_key and HAS_IMAGE_DEPS:
-        print(f"[INFO] Fetching satellite image for {lat}, {lng}...")
-        sat_img = fetch_satellite_image(lat, lng, api_key)
+        # Validate coordinates before making API call
+        coord_valid, coord_msg = validate_coordinates(lat, lng, strict=True)
+        if not coord_valid:
+            print(f"[WARN] {coord_msg}")
+            print("[WARN] Satellite image skipped — using placeholder images")
+            lat, lng = None, None  # prevent fetch
+        else:
+            print(f"[OK] Coordinates validated: {lat}, {lng}")
+
+        sat_img = fetch_satellite_image(lat, lng, api_key) if lat and lng else None
         if sat_img:
             sat_image_path = save_image_for_pdf(sat_img, "satellite")
             temp_files.append(sat_image_path)
@@ -1885,6 +1996,10 @@ if __name__ == "__main__":
         try:
             lat = float(lat_str)
             lng = float(lng_str)
+            # Early validation — warn but don't exit (build_dossier will skip gracefully)
+            coord_ok, coord_msg = validate_coordinates(lat, lng, strict=False)
+            if not coord_ok:
+                print(f"[WARN] {coord_msg}")
         except ValueError:
             print(f"[WARN] Invalid lat/lng: {lat_str}, {lng_str} — skipping satellite image")
 

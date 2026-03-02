@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "effective_date": "2026-01-01",
+  "notes": "Pre-ATAP Round 3 assumptions. Tariff per TNB published schedule.",
+  "tariff_rate_sen_kwh": 43.5,
+  "capex_per_kwp_rm_low": 1800,
+  "capex_per_kwp_rm_high": 2200,
+  "degradation_annual_pct": 0.5,
+  "system_efficiency": 0.80,
+  "peak_sun_hours_selangor": 4.5,
+  "kwh_per_kwp_annual": 1300,
+  "cas_fee_rm": 5000,
+  "structural_assessment_low_rm": 3000,
+  "structural_assessment_high_rm": 8000
+}
