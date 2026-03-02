@@ -20,4 +20,5 @@ export const ENV = {
   SUPABASE_SERVICE_ROLE_KEY: getEnv("SUPABASE_SERVICE_ROLE_KEY"),
   // Apify integration
   APIFY_API_TOKEN: getEnv("APIFY_API_TOKEN"),
+  APIFY_ACTOR_ID: getEnv("APIFY_ACTOR_ID"),
 } as const;

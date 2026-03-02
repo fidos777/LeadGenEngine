@@ -3,6 +3,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth/getAuthContext";
 import { canAccess } from "@/lib/auth/permissions";
 
+const POWROOF_ACTOR_ID = "vZLIIEKh7bybv6ZYr";
+
 /**
  * POST /api/v1/sync/apify
  *
@@ -86,14 +88,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { actorId, datasetId } = body;
-
-  if (!actorId && !datasetId) {
-    return NextResponse.json(
-      { error: "Either actorId or datasetId required" },
-      { status: 400 }
-    );
-  }
+  const actorId = body.actorId || POWROOF_ACTOR_ID;
+  const { datasetId } = body;
 
   const supabase = createSupabaseAdminClient();
   const syncStartedAt = new Date().toISOString();
