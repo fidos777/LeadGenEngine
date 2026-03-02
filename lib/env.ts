@@ -18,4 +18,6 @@ export const ENV = {
   SUPABASE_ANON_KEY: requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   // Server-side only - required for admin/write operations
   SUPABASE_SERVICE_ROLE_KEY: getEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  // Apify integration
+  APIFY_API_TOKEN: getEnv("APIFY_API_TOKEN"),
 } as const;
